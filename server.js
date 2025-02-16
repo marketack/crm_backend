@@ -68,35 +68,19 @@ const allowedOrigins = [
   /\.crmore\.com$/, // ✅ Allow all subdomains of crmore.com
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some((pattern) => typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
-        callback(null, true);
-      } else {
-        console.warn(`⛔ Blocked by CORS: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true, // ✅ Allow cookies & authentication headers
-  })
-);
-
-
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        logger.warn(`⛔ Blocked by CORS: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true, // Allow cookies & authorization headers
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some((pattern) => typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
+      callback(null, true);
+    } else {
+      logger.warn(`⛔ Blocked by CORS: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
 // ✅ Body Parsing & Cookies
 app.use(bodyParser.json({ limit: "10mb" }));
