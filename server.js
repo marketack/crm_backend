@@ -1,3 +1,4 @@
+// ✅ Required Dependencies
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -17,22 +18,13 @@ const winston = require("winston");
 const expressWinston = require("express-winston");
 const passport = require("./config/passport");
 
-// Load environment variables
+// ✅ Load environment variables
 dotenv.config();
 
-// Initialize Express app
+// ✅ Initialize Express app
 const app = express();
 
-// ✅ Security Middlewares
-app.use(helmet()); // Secure HTTP headers
-app.use(xss()); // Prevent XSS attacks
-app.use(mongoSanitize()); // Prevent NoSQL injection attacks
-
-// ✅ Performance & Logging
-app.use(compression()); // Compress responses for better performance
-app.use(morgan("combined")); // Log HTTP requests
-
-// ✅ Winston Logger Configuration
+// ✅ Setup Logging with Winston
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
@@ -54,14 +46,16 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-// ✅ Middleware for structured request logging (Ignoring Swagger Logs)
-app.use(
-  expressWinston.logger({
-    winstonInstance: logger,
-    ignoreRoute: (req) => req.url.startsWith("/api-docs"),
-  })
-);
+// ✅ Security Middleware (Prevent attacks & enhance security)
+app.use(helmet()); // Secure HTTP headers
+app.use(xss()); // Prevent XSS attacks
+app.use(mongoSanitize()); // Prevent NoSQL injection attacks
 
+// ✅ Performance & Logging
+app.use(compression()); // Compress responses for better performance
+app.use(morgan("combined")); // Log HTTP requests
+
+// ✅ CORS Configuration (Fixing OPTIONS Request Error)
 const allowedOrigins = [
   "https://crmore.com",
   "https://backend.crmore.com",
@@ -70,7 +64,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some((pattern) => typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
+    if (!origin || allowedOrigins.some((pattern) => 
+        typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
       callback(null, true);
     } else {
       logger.warn(`⛔ Blocked by CORS: ${origin}`);
@@ -82,12 +77,22 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// ✅ Body Parsing & Cookies
+// ✅ Handle OPTIONS Requests Properly (Fix 500 Error)
+app.options("*", (req, res) => {
+  res.set({
+    "Access-Control-Allow-Origin": "https://crmore.com",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  });
+  res.status(204).send();
+});
+
+// ✅ Middleware for request parsing & cookies
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ✅ Rate Limiting (Prevent API Abuse)
+// ✅ Rate Limiting (Prevent API abuse)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit requests per window
@@ -95,7 +100,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// ✅ MongoDB Connection with Retry
+// ✅ MongoDB Connection with Auto-Retry
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
@@ -111,7 +116,6 @@ const connectDB = async () => {
     setTimeout(connectDB, 5000); // Retry after 5 seconds
   }
 };
-
 connectDB();
 
 // ✅ Serve Static Files for Frontend
@@ -125,7 +129,7 @@ app.get("/", (req, res) => {
   res.status(200).json({ message: "🚀 Advanced CRM Backend Running!" });
 });
 
-// ✅ Import Routes
+// ✅ Import & Use Routes
 const authRoutes = require("./routes/authRoutes");
 const leadRoutes = require("./routes/leadRoutes");
 const customerRoutes = require("./routes/customerRoutes");
@@ -135,7 +139,6 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 
-// ✅ Use Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/customers", customerRoutes);
@@ -145,11 +148,20 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/staff", staffRoutes);
 
-// ✅ Global Error Handling
+// ✅ Global Error Handling (Improved)
 app.use((err, req, res, next) => {
-  logger.error(`❌ Error: ${err.message}`);
-  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
+  logger.error(`❌ Error: ${err.message}`, { stack: err.stack });
+  
+  // Handle CORS errors properly
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({ message: "CORS Policy Blocked Request" });
+  }
+
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+  });
 });
+
 app.use(passport.initialize());
 
 // ✅ Graceful Shutdown Handling
