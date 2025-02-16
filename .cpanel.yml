@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/public_html/react-frontend
+    - /bin/rm -rf $DEPLOYPATH/build
+    - npm install
+    - npm run build
+    - mv build/* $DEPLOYPATH/
