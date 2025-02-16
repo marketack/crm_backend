@@ -1,20 +1,5 @@
 ---
 deployment:
   tasks:
-    # Define the deployment path
-    - export DEPLOYPATH=/home/crmore/public_html/backend.crmore.com
-
-    # Change directory to the deployment path
-    - cd $DEPLOYPATH
-
-    # Pull the latest code from GitHub
-    - git pull origin main || echo "Git pull failed"
-
-    # Install dependencies (for Node.js backend)
-    - npm install --production || echo "npm install failed"
-
-    # Ensure the images directory is copied properly
-    - /bin/cp -R images $DEPLOYPATH/images || echo "Image copy failed"
-
-    # Restart the backend application using PM2
-    - pm2 restart server.js || pm2 start server.js
+    - export DEPLOYPATH=/home/example/public_html/
+    - /bin/cp -R images $DEPLOYPATH
