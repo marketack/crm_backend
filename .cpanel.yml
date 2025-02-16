@@ -1,8 +1,6 @@
 ---
+---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/$USER/public_html/react-frontend
-    - /bin/rm -rf $DEPLOYPATH/build
-    - npm install
-    - npm run build
-    - mv build/* $DEPLOYPATH/
+    - export PATH=/usr/local/bin:$PATH
+    - /bin/cp -R * /home/crmore/public_html/backend.crmore.com/
