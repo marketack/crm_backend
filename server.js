@@ -62,11 +62,10 @@ app.use(
   })
 );
 
-// ✅ CORS Configuration (Updated)
 const allowedOrigins = [
-  /\.crmore\.com$/,  // Matches crmore.com and all its subdomains
-  "http://localhost:3000",
-  "http://localhost:3001",
+  "https://crmore.com",
+  "https://backend.crmore.com",
+  /\.crmore\.com$/, // ✅ Allow all subdomains of crmore.com
 ];
 
 app.use(
@@ -79,9 +78,10 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true, // Allow cookies & authorization headers
+    credentials: true, // ✅ Allow cookies & authentication headers
   })
 );
+
 
 
 app.use(
