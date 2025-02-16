@@ -4,3 +4,19 @@
 {"level":"error","message":"❌ Error: Unknown authentication strategy \"jwt\"","timestamp":"2025-02-15T20:05:07.504Z"}
 {"level":"error","message":"❌ Error: Unknown authentication strategy \"jwt\"","timestamp":"2025-02-15T20:05:09.381Z"}
 {"level":"error","message":"❌ Error: Unknown authentication strategy \"jwt\"","timestamp":"2025-02-15T20:05:10.661Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T10:48:05.950Z"}
+{"level":"error","message":"❌ Error: Lead validation failed: status: `New` is not a valid enum value for path `status`.","timestamp":"2025-02-16T10:54:37.657Z"}
+{"level":"error","message":"❌ Error: Lead validation failed: status: `New` is not a valid enum value for path `status`.","timestamp":"2025-02-16T10:57:10.189Z"}
+{"level":"error","message":"❌ Error: Cast to ObjectId failed for value \"undefined\" (type string) at path \"_id\" for model \"Lead\"","timestamp":"2025-02-16T10:59:02.329Z"}
+{"level":"error","message":"❌ Error: Cast to ObjectId failed for value \"undefined\" (type string) at path \"_id\" for model \"Lead\"","timestamp":"2025-02-16T11:14:32.078Z"}
+{"level":"error","message":"❌ Error: Cast to ObjectId failed for value \"undefined\" (type string) at path \"_id\" for model \"Lead\"","timestamp":"2025-02-16T11:15:38.389Z"}
+{"level":"error","message":"❌ Error: Not authorized as admin","timestamp":"2025-02-16T11:36:45.085Z"}
+{"level":"error","message":"❌ Error: Not authorized as admin","timestamp":"2025-02-16T11:37:21.648Z"}
+{"level":"error","message":"❌ Error: Not authorized as admin","timestamp":"2025-02-16T11:38:43.397Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:49:35.073Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:34.092Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:39.581Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:44.718Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:46.376Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:47.494Z"}
+{"level":"error","message":"❌ Error: Not authorized, invalid token","timestamp":"2025-02-16T11:50:52.279Z"}

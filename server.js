@@ -46,7 +46,12 @@ const logger = winston.createLogger({
 });
 
 if (process.env.NODE_ENV !== "production") {
-  logger.add(new winston.transports.Console({ format: winston.format.simple() }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.simple(),
+      level: "error", // Only log errors in the terminal
+    })
+  );
 }
 
 // Middleware for structured request logging (Ignoring Swagger Logs)
@@ -124,6 +129,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const taskRoutes = require("./routes/taskRoutes"); // Added Task Routes
+const staffRoutes = require("./routes/staffRoutes"); // Added Task Routes
 
 // Use Routes
 app.use("/api/auth", authRoutes);
@@ -133,6 +139,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tasks", taskRoutes); // Added Task API Route
+app.use("/api/staff", staffRoutes); // Added Task API Route
 
 // Global Error Handling
 app.use((err, req, res, next) => {

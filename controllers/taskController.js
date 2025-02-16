@@ -3,25 +3,52 @@ const asyncHandler = require("express-async-handler");
 
 // Create a new task
 exports.createTask = asyncHandler(async (req, res) => {
-  const { title, description, assignedTo, status } = req.body;
+  const { title, description, status, assignedTo } = req.body;
 
   try {
-    const newTask = await Task.create({ title, description, assignedTo, status });
+    const newTask = await Task.create({
+      title,
+      description,
+      status,
+      assignedTo: assignedTo || null, // ✅ Ensure assignedTo is saved
+    });
+
     res.status(201).json(newTask);
   } catch (error) {
     res.status(500).json({ message: "Error creating task", error: error.message });
   }
 });
 
-// Get all tasks
+// Update Task
+exports.updateTask = asyncHandler(async (req, res) => {
+  const { title, description, status, assignedTo } = req.body;
+  
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.title = title;
+    task.description = description;
+    task.status = status;
+    task.assignedTo = assignedTo || task.assignedTo; // ✅ Update assignedTo
+
+    await task.save();
+    res.status(200).json(task);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating task", error: error.message });
+  }
+});
+
+// controllers/taskController.js
 exports.getAllTasks = asyncHandler(async (req, res) => {
   try {
-    const tasks = await Task.find().populate("assignedTo", "username email");
+    const tasks = await Task.find().populate("assignedTo", "name email");
     res.status(200).json(tasks);
   } catch (error) {
     res.status(500).json({ message: "Error fetching tasks", error: error.message });
   }
 });
+
 
 // Get task by ID
 exports.getTaskById = asyncHandler(async (req, res) => {
@@ -35,20 +62,8 @@ exports.getTaskById = asyncHandler(async (req, res) => {
   }
 });
 
-// Update a task
-exports.updateTask = asyncHandler(async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: "Task not found" });
 
-    Object.assign(task, req.body);
-    await task.save();
 
-    res.status(200).json(task);
-  } catch (error) {
-    res.status(500).json({ message: "Error updating task", error: error.message });
-  }
-});
 
 // Delete a task
 exports.deleteTask = asyncHandler(async (req, res) => {
