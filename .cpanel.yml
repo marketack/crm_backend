@@ -2,4 +2,4 @@
 deployment:
       tasks:
         - export DEPLOYPATH=/home/crmore/public_html/backend.crmore.com
-        - /bin/cp -r /home/glades/<repositories>/<repo>/* $DEPLOYPATH
+        - /bin/cp -r /home/crmore/public_html/backend.crmore.com/* $DEPLOYPATH
