@@ -1,5 +1,5 @@
 ---
 deployment:
-  tasks:
-    - export PATH=/usr/local/bin:$PATH
-    - /bin/cp -R * /home/crmore/public_html/backend.crmore.com
+      tasks:
+        - export DEPLOYPATH=/home/crmore/public_html/backend.crmore.com
+        - /bin/cp -r /home/glades/<repositories>/<repo>/* $DEPLOYPATH
