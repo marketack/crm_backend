@@ -17,7 +17,6 @@ const winston = require("winston");
 const expressWinston = require("express-winston");
 const passport = require("./config/passport");
 
-
 // Load environment variables
 dotenv.config();
 
@@ -33,7 +32,7 @@ app.use(mongoSanitize());
 app.use(compression());
 app.use(morgan("combined"));
 
-// Winston Logging Configuration
+// Winston Logger Configuration
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
@@ -123,15 +122,17 @@ const leadRoutes = require("./routes/leadRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const userRoutes = require("./routes/userRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes"); // Import dashboard routes
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const taskRoutes = require("./routes/taskRoutes"); // Added Task Routes
 
 // Use Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/users", userRoutes); 
-app.use("/api/dashboard", dashboardRoutes); // Add Dashboard API route
+app.use("/api/users", userRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/tasks", taskRoutes); // Added Task API Route
 
 // Global Error Handling
 app.use((err, req, res, next) => {
