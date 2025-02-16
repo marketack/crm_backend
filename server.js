@@ -55,7 +55,7 @@ app.use(mongoSanitize()); // Prevent NoSQL injection attacks
 app.use(compression()); // Compress responses for better performance
 app.use(morgan("combined")); // Log HTTP requests
 
-// ✅ CORS Configuration (Fixing OPTIONS Request Error)
+
 const allowedOrigins = [
   "https://crmore.com",
   "https://backend.crmore.com",
@@ -63,29 +63,34 @@ const allowedOrigins = [
   /\.crmore\.com$/, // ✅ Allow all subdomains of crmore.com
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some((pattern) => 
-        typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
-      callback(null, true);
-    } else {
-      logger.warn(`⛔ Blocked by CORS: ${origin}`);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.some((pattern) => 
+          typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
+        callback(null, true);
+      } else {
+        console.error(`⛔ CORS Blocked: ${origin}`);
+        return callback(new Error("CORS Policy Blocked Request"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
+// ✅ Handle CORS Preflight Requests
 app.options("*", (req, res) => {
   res.set({
-    "Access-Control-Allow-Origin": "https://crmore.com",
+    "Access-Control-Allow-Origin": req.headers.origin || "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
   });
-  res.status(204).send(); // Ensure the preflight request gets a proper response
+  res.status(204).send();
 });
+
 
 
 // ✅ Middleware for request parsing & cookies
