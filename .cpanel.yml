@@ -1,5 +1,22 @@
 ---
 deployment:
   tasks:
-    - export PATH=/usr/local/bin:$PATH
-    - /bin/cp -R * /home/crmore/public_html/backend.crmore.com/
+    - export DEPLOYPATH=/home/crmore/public_html/backend.crmore.com
+
+    # Navigate to the deployment path
+    - cd $DEPLOYPATH
+
+    # Pull the latest code from GitHub
+    - git pull origin main
+
+    # Install dependencies
+    - npm install --production
+
+    # If using TypeScript, compile it
+    - npm run build # Remove if your project doesn’t require a build step
+
+    # Copy static files (if any) to public_html for serving
+    - /bin/cp -R public $DEPLOYPATH/public_html
+
+    # Restart the backend server using PM2 (Modify based on your entry point)
+    - pm2 restart server.js # Change to app.js or index.js if necessary
