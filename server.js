@@ -59,6 +59,7 @@ app.use(morgan("combined")); // Log HTTP requests
 const allowedOrigins = [
   "https://crmore.com",
   "https://backend.crmore.com",
+  "http://localhost:3000",
   /\.crmore\.com$/, // ✅ Allow all subdomains of crmore.com
 ];
 
@@ -77,15 +78,15 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// ✅ Handle OPTIONS Requests Properly (Fix 500 Error)
 app.options("*", (req, res) => {
   res.set({
     "Access-Control-Allow-Origin": "https://crmore.com",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   });
-  res.status(204).send();
+  res.status(204).send(); // Ensure the preflight request gets a proper response
 });
+
 
 // ✅ Middleware for request parsing & cookies
 app.use(bodyParser.json({ limit: "10mb" }));
