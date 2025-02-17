@@ -1,6 +1,5 @@
 // ✅ Required Dependencies
 const express = require("express");
-const cors = require("cors");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
@@ -57,29 +56,7 @@ app.use(compression()); // Compress responses for better performance
 app.use(morgan("combined")); // Log HTTP requests
 
 
-const allowedOrigins = [
-  "https://crmore.com",
-  "https://backend.crmore.com",
-  "http://localhost:3000",
-  /\.crmore\.com$/, // ✅ Allow all subdomains of crmore.com
-];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.some((pattern) => 
-          typeof pattern === "string" ? pattern === origin : pattern.test(origin))) {
-        callback(null, true);
-      } else {
-        console.error(`⛔ CORS Blocked: ${origin}`);
-        return callback(new Error("CORS Policy Blocked Request"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 
 // ✅ Handle CORS Preflight Requests
 app.options("*", (req, res) => {
