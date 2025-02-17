@@ -23,6 +23,7 @@ dotenv.config();
 
 // ✅ Initialize Express app
 const app = express();
+app.set('trust proxy', 1);
 
 // ✅ Setup Logging with Winston
 const logger = winston.createLogger({
