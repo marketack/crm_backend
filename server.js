@@ -4,7 +4,6 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const xss = require("xss-clean");
@@ -16,6 +15,9 @@ const swaggerSpec = require("./config/swaggerConfig");
 const winston = require("winston");
 const expressWinston = require("express-winston");
 const passport = require("./config/passport");
+const cors = require("cors");
+
+
 
 // ✅ Load environment variables
 dotenv.config();
@@ -24,6 +26,11 @@ dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
 
+const corsOptions = {
+  origin: "*", // ✅ Allow all origins
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 // ✅ Setup Logging with Winston
 const logger = winston.createLogger({
   level: "info",
@@ -57,32 +64,14 @@ app.use(morgan("combined")); // Log HTTP requests
 
 
 
-
-// ✅ Handle CORS Preflight Requests
-app.options("*", (req, res) => {
-  res.set({
-    "Access-Control-Allow-Origin": req.headers.origin || "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  });
-  res.status(204).send();
-});
-
-
-
+// ✅ Apply CORS Middleware
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // ✅ Handle preflight requests
 // ✅ Middleware for request parsing & cookies
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ✅ Rate Limiting (Prevent API abuse)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit requests per window
-  message: "Too many requests, please try again later.",
-});
-app.use(limiter);
 
 // ✅ MongoDB Connection with Auto-Retry
 const connectDB = async () => {

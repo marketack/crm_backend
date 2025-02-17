@@ -5,6 +5,7 @@ const {
   login,
   forgotPassword,
   deleteUser,
+  logout,
   refreshToken,
 } = require("../controllers/authController");
 
@@ -117,5 +118,7 @@ router.post("/forgot-password", forgotPassword);
  *         description: Invalid or expired token
  */
 router.post("/refresh-token", refreshToken);
+
+router.post("/logout", logout);
 
 module.exports = router;

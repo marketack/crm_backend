@@ -7,26 +7,26 @@ const VALID_STATUSES = ["New", "In Progress", "Closed"];
 // ✅ Create a new lead
 exports.createLead = asyncHandler(async (req, res) => {
   try {
-    const { name, email, phone, status } = req.body;
+    console.log("📩 Incoming Lead Data:", req.body);
 
-    // ✅ Ensure all required fields are present
-    if (!name || !email || !phone) {
-      return res.status(400).json({ error: "All fields (name, email, phone) are required" });
+    const { name, email, phone, company, status } = req.body;
+
+    // ✅ Ensure required fields are present
+    if (!name || !email || !phone || !company) {
+      console.error("🚨 Missing required fields:", { name, email, phone, company });
+      return res.status(400).json({ error: "All fields (name, email, phone, company) are required" });
     }
 
     // ✅ Validate email format
     if (!/\S+@\S+\.\S+/.test(email)) {
+      console.error("🚨 Invalid email format:", email);
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // ✅ Validate phone number (basic check)
-    if (!/^\d{7,15}$/.test(phone)) {
-      return res.status(400).json({ error: "Invalid phone number. Must be 7-15 digits" });
-    }
-
-    // ✅ Ensure the status is valid
-    if (status && !VALID_STATUSES.includes(status)) {
-      return res.status(400).json({ error: `Invalid status. Allowed values: ${VALID_STATUSES.join(", ")}` });
+    // ✅ Ensure user ID is available
+    if (!req.user || !req.user.id) {
+      console.error("🚨 User ID is missing from request.");
+      return res.status(401).json({ error: "User authentication required" });
     }
 
     // ✅ Create the lead
@@ -34,16 +34,20 @@ exports.createLead = asyncHandler(async (req, res) => {
       name,
       email,
       phone,
+      company,
       status: status || "New",
       createdBy: req.user.id,
     });
 
+    console.log("✅ Lead created successfully:", lead);
+
     res.status(201).json({ message: "Lead created successfully", lead });
   } catch (error) {
-    console.error("Create Lead Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("🚨 Create Lead Error:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 });
+
 
 // ✅ Get all leads for the authenticated user
 exports.getLeads = asyncHandler(async (req, res) => {
