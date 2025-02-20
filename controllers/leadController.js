@@ -1,58 +1,68 @@
 const asyncHandler = require("express-async-handler");
 const Lead = require("../models/Lead");
+const User = require("../models/User");
+const Permission = require("../models/Permission");
 
-// Valid status options
-const VALID_STATUSES = ["New", "In Progress", "Closed"];
-
-// ✅ Create a new lead
+// ✅ Create a new lead (Requires "create_lead" permission)
 exports.createLead = asyncHandler(async (req, res) => {
   try {
-    console.log("📩 Incoming Lead Data:", req.body);
-
-    const { name, email, phone, company, status } = req.body;
-
-    // ✅ Ensure required fields are present
-    if (!name || !email || !phone || !company) {
-      console.error("🚨 Missing required fields:", { name, email, phone, company });
-      return res.status(400).json({ error: "All fields (name, email, phone, company) are required" });
+    // ✅ Check if the user has permission to create a lead
+    const hasPermission = req.user.permissions.some((perm) => perm.name === "create_lead");
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Forbidden: You don't have permission to create a lead" });
     }
 
-    // ✅ Validate email format
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      console.error("🚨 Invalid email format:", email);
-      return res.status(400).json({ error: "Invalid email format" });
+    const { name, email, phone, company, status, source, assignedTo, tags, address, city, state, country, zipCode, leadValue, defaultLanguage, description, publicContactedToday } = req.body;
+
+    // ✅ Validate required fields
+    if (!name || !email || !phone) {
+      return res.status(400).json({ message: "Name, email, and phone are required" });
     }
 
-    // ✅ Ensure user ID is available
-    if (!req.user || !req.user.id) {
-      console.error("🚨 User ID is missing from request.");
-      return res.status(401).json({ error: "User authentication required" });
-    }
-
-    // ✅ Create the lead
     const lead = await Lead.create({
       name,
       email,
       phone,
       company,
       status: status || "New",
-      createdBy: req.user.id,
+      source,
+      assignedTo,
+      tags,
+      address,
+      city,
+      state,
+      country,
+      zipCode,
+      leadValue,
+      defaultLanguage,
+      description,
+      publicContactedToday,
+      createdBy: req.user._id,
     });
-
-    console.log("✅ Lead created successfully:", lead);
 
     res.status(201).json({ message: "Lead created successfully", lead });
   } catch (error) {
-    console.error("🚨 Create Lead Error:", error);
-    res.status(500).json({ error: "Internal Server Error", details: error.message });
+    console.error("Create Lead Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-
-// ✅ Get all leads for the authenticated user
+// ✅ Get all leads (Requires "view_leads" permission)
 exports.getLeads = asyncHandler(async (req, res) => {
   try {
-    const leads = await Lead.find({ createdBy: req.user.id }).sort({ createdAt: -1 });
+    const hasPermission = req.user.permissions.some((perm) => perm.name === "view_leads");
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Forbidden: You don't have permission to view leads" });
+    }
+
+    let query = {};
+
+    // ✅ Admins see all leads, normal users see only assigned leads
+    if (req.user.role.name !== "Admin" && req.user.role.name !== "Super Admin") {
+      query.$or = [{ assignedTo: req.user._id }, { createdBy: req.user._id }];
+    }
+
+    const leads = await Lead.find(query).populate("assignedTo", "firstName lastName email");
 
     if (!leads.length) {
       return res.status(404).json({ message: "No leads found" });
@@ -61,63 +71,55 @@ exports.getLeads = asyncHandler(async (req, res) => {
     res.status(200).json(leads);
   } catch (error) {
     console.error("Get Leads Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-// ✅ Update a lead
+// ✅ Update a lead (Requires "edit_lead" permission)
 exports.updateLead = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-
-    // ✅ Ensure `id` is a valid ObjectId
-    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ error: "Invalid lead ID format" });
-    }
-
     const lead = await Lead.findById(id);
+
     if (!lead) {
-      return res.status(404).json({ error: "Lead not found" });
+      return res.status(404).json({ message: "Lead not found" });
     }
 
-    // ✅ Ensure only the owner can update
-    if (lead.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ error: "Not authorized to update this lead" });
+    const hasPermission = req.user.permissions.some((perm) => perm.name === "edit_lead");
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Forbidden: You don't have permission to edit this lead" });
     }
 
-    const updatedLead = await Lead.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    Object.assign(lead, req.body);
+    await lead.save();
 
-    res.status(200).json({ message: "Lead updated successfully", updatedLead });
+    res.status(200).json({ message: "Lead updated successfully", lead });
   } catch (error) {
     console.error("Update Lead Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-
-// ✅ Delete a lead
+// ✅ Delete a lead (Requires "delete_lead" permission)
 exports.deleteLead = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
     const lead = await Lead.findById(id);
 
     if (!lead) {
-      return res.status(404).json({ error: "Lead not found" });
+      return res.status(404).json({ message: "Lead not found" });
     }
 
-    // ✅ Ensure only the owner or an admin can delete the lead
-    if (!req.user.isAdmin && lead.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ error: "Not authorized to delete this lead" });
+    const hasPermission = req.user.permissions.some((perm) => perm.name === "delete_lead");
+    if (!hasPermission) {
+      return res.status(403).json({ message: "Forbidden: You don't have permission to delete this lead" });
     }
 
-    await Lead.deleteOne({ _id: id });
+    await lead.deleteOne();
 
     res.status(200).json({ message: "Lead deleted successfully" });
   } catch (error) {
     console.error("Delete Lead Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });

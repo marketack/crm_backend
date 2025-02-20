@@ -1,63 +1,107 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
-const User = require("../models/User"); // Ensure User model exists
+const User = require("../models/User");
 
-// Middleware to protect routes
-const protect = asyncHandler(async (req, res, next) => {
+// ✅ Middleware to authenticate user
+exports.protect = asyncHandler(async (req, res, next) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
 
-      console.log("Authenticated User:", req.user); // 🔍 Debug Log
+      // Populate role & permissions dynamically
+      req.user = await User.findById(decoded.id)
+        .populate("role") // Fetch role details
+        .populate("permissions"); // Fetch custom permissions
 
       if (!req.user) {
-        res.status(401);
-        throw new Error("User not found");
+        return res.status(401).json({ message: "User not found" });
       }
 
+      console.log("✅ Authenticated User:", req.user);
       next();
     } catch (error) {
-      res.status(401);
-      throw new Error("Not authorized, invalid token");
+      return res.status(401).json({ message: "Not authorized, invalid token" });
     }
   } else {
-    res.status(401);
-    throw new Error("Not authorized, no token provided");
+    return res.status(401).json({ message: "Not authorized, no token provided" });
   }
 });
 
-// Middleware to check if user is an admin
-const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role && req.user.role.toLowerCase() === "admin") {
-    next();
-  } else {
-    console.log("❌ Admin Check Failed. User Role:", req.user?.role); // Debug log
-    res.status(403);
-    throw new Error("Not authorized as admin");
+// ✅ Middleware to check if user is an admin
+exports.isAdmin = asyncHandler(async (req, res, next) => {
+  if (!req.user || !req.user.role || req.user.role.name.toLowerCase() !== "admin") {
+    console.log("❌ Admin Check Failed. User Role:", req.user?.role?.name);
+    return res.status(403).json({ message: "Not authorized as admin" });
   }
-};
+  next();
+});
 
-exports.verifyToken = (roles = []) => (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+// ✅ Super Admin Middleware
+exports.superAdminOnly = asyncHandler(async (req, res, next) => {
+  if (!req.user || req.user.role.name !== "Super Admin") {
+    return res.status(403).json({ message: "Forbidden, only Super Admin can perform this action" });
+  }
+  next();
+});
 
-  if (!token) return res.status(401).json({ message: "Unauthorized" });
+// ✅ Admin Middleware
+exports.adminOnly = asyncHandler(async (req, res, next) => {
+  if (!req.user || !["Admin", "Super Admin"].includes(req.user.role.name)) {
+    return res.status(403).json({ message: "Forbidden, only Admins can perform this action" });
+  }
+  next();
+});
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid Token" });
-
-    // Check roles
-    if (roles.length && !roles.includes(user.role)) {
-      return res.status(403).json({ message: "Forbidden - Insufficient privileges" });
+// ✅ Role-Based Middleware (For Specific Roles)
+exports.hasRole = (roles) => {
+  return asyncHandler(async (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role.name)) {
+      return res.status(403).json({ message: `Access Denied: Requires ${roles.join(" or ")}` });
     }
-
-    req.user = user;
     next();
   });
 };
 
-// **Ensure proper exports**
-module.exports = { protect, isAdmin };
+// ✅ Permission-Based Middleware
+exports.hasPermission = (requiredPermission) => {
+  return asyncHandler(async (req, res, next) => {
+    const userPermissions = req.user.permissions.map((perm) => perm.name);
+
+    console.log(`🔍 Checking permission: ${requiredPermission}`);
+    console.log(`✅ User Permissions: ${userPermissions.join(", ")}`);
+
+    if (!userPermissions.includes(requiredPermission)) {
+      return res.status(403).json({ message: `Forbidden, missing permission: ${requiredPermission}` });
+    }
+
+    next();
+  });
+};
+
+// ✅ Verify Token with Role Check
+exports.verifyToken = (roles = []) => asyncHandler(async (req, res, next) => {
+  let token = req.headers.authorization?.split(" ")[1];
+
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).populate("role").populate("permissions");
+
+    if (!req.user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // ✅ Check if user has one of the required roles
+    if (roles.length && !roles.includes(req.user.role.name)) {
+      return res.status(403).json({ message: `Forbidden - Requires ${roles.join(" or ")}` });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Invalid Token" });
+  }
+});

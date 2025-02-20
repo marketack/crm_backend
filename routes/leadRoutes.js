@@ -1,6 +1,12 @@
 const express = require("express");
-const { createLead, getLeads, updateLead, deleteLead } = require("../controllers/leadController");
-const { protect, isAdmin } = require("../middleware/authMiddleware");
+const {
+  createLead,
+  getLeads,
+  updateLead,
+  deleteLead,
+} = require("../controllers/leadController");
+
+const { protect, hasPermission } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -16,7 +22,7 @@ const router = express.Router();
  * /api/leads:
  *   post:
  *     summary: Create a new lead
- *     description: Only logged-in users can create leads.
+ *     description: Only users with "create_lead" permission can create leads.
  *     tags: [Leads]
  *     security:
  *       - BearerAuth: []
@@ -43,63 +49,38 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Lead created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lead created successfully
+ *       403:
+ *         description: Forbidden - Insufficient permissions
  *       400:
  *         description: Bad request
- *       401:
- *         description: Unauthorized - User not logged in
  */
-router.post("/", protect, createLead);
+router.post("/", protect, hasPermission("create_lead"), createLead);
 
 /**
  * @swagger
  * /api/leads:
  *   get:
  *     summary: Get all leads
- *     description: Only logged-in users can retrieve leads.
+ *     description: Users need the "view_leads" permission to retrieve leads.
  *     tags: [Leads]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: List of leads retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                     example: 61c4c5f4a3b2f8a37e543dcb
- *                   name:
- *                     type: string
- *                     example: Jane Doe
- *                   email:
- *                     type: string
- *                     example: janedoe@example.com
- *                   phone:
- *                     type: string
- *                     example: "+9876543210"
+ *       403:
+ *         description: Forbidden - Insufficient permissions
  *       401:
  *         description: Unauthorized - User not logged in
  */
-router.get("/", protect, getLeads);
+router.get("/", protect, hasPermission("view_leads"), getLeads);
 
 /**
  * @swagger
  * /api/leads/{id}:
  *   put:
  *     summary: Update a lead
- *     description: Only logged-in users can update a lead.
+ *     description: Users need the "edit_lead" permission to update leads.
  *     tags: [Leads]
  *     security:
  *       - BearerAuth: []
@@ -129,29 +110,21 @@ router.get("/", protect, getLeads);
  *     responses:
  *       200:
  *         description: Lead updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lead updated successfully
+ *       403:
+ *         description: Forbidden - Insufficient permissions
  *       400:
  *         description: Bad request
- *       401:
- *         description: Unauthorized - User not logged in
  *       404:
  *         description: Lead not found
  */
-router.put("/:id", protect, updateLead);
+router.put("/:id", protect, hasPermission("edit_lead"), updateLead);
 
 /**
  * @swagger
  * /api/leads/{id}:
  *   delete:
  *     summary: Delete a lead
- *     description: Only admins can delete leads.
+ *     description: Users need the "delete_lead" permission to remove leads.
  *     tags: [Leads]
  *     security:
  *       - BearerAuth: []
@@ -165,21 +138,11 @@ router.put("/:id", protect, updateLead);
  *     responses:
  *       200:
  *         description: Lead deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Lead deleted successfully
- *       401:
- *         description: Unauthorized - User not logged in
  *       403:
- *         description: Forbidden - Only admin users can delete leads
+ *         description: Forbidden - Insufficient permissions
  *       404:
  *         description: Lead not found
  */
-router.delete("/:id", protect, isAdmin, deleteLead);
+router.delete("/:id", protect, hasPermission("delete_lead"), deleteLead);
 
 module.exports = router;

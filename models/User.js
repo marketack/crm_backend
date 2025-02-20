@@ -1,47 +1,40 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const { DateTime } = require("luxon");
 
-const userSchema = new mongoose.Schema({
-  firstName: { type: String, required: true, maxLength: 50 },
-  lastName: { type: String, required: true, maxLength: 50 },
-  email: { type: String, required: true, maxLength: 256, unique: true },
-  phoneNumber: { type: String, required: true, unique: true },
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true, minLength: 8 },
-  role: {
-    type: String,
-    enum: ["admin", "manager", "sales", "support", "customer"],
-    default: "customer",
-  }, // CRM-Specific Roles
-  refreshToken: String,
-  isPhoneVerified: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-  otp: {
-    code: String,
-    expiresAt: Date,
-  },
-  loginAttempts: { type: Number, default: 0 },
-  lockUntil: { type: Date, default: null },
-  twoFactorAuth: {
-    enabled: { type: Boolean, default: false },
-    secret: String, // TOTP Secret for Multi-Factor Authentication
-  },
-  createdAt: { type: Date, default: Date.now },
-});
+const userSchema = new mongoose.Schema(
+  {
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
 
-// Virtual formatted registration date
-userSchema.virtual("formattedDate").get(function () {
-  return DateTime.fromJSDate(this.createdAt).toFormat("LLL dd, yyyy");
-});
+    // Role assigned to the user
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role", required: true },
 
-// Pre-save hook to enforce password rules
-userSchema.pre("save", function (next) {
+    // Additional permissions assigned directly
+    permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
+
+    isEmailVerified: { type: Boolean, default: false },
+    status: { type: String, enum: ["active", "suspended", "deactivated"], default: "active" },
+
+    createdAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+// Hash password before saving
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  if (this.password.length < 8) {
-    return next(new Error("Password must be at least 8 characters long."));
-  }
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
+
+// Compare entered password with stored hash
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

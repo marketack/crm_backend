@@ -111,6 +111,8 @@ const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const staffRoutes = require("./routes/staffRoutes");
+const permissionRoutes = require("./routes/permissionRoutes");
+const roleRoutes = require("./routes/roleRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/leads", leadRoutes);
@@ -120,6 +122,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/permission", permissionRoutes);
+app.use("/api/role", roleRoutes);
 
 // ✅ Global Error Handling (Improved)
 app.use((err, req, res, next) => {

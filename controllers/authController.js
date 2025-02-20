@@ -7,11 +7,12 @@ const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 
 // Register a new user
+
 exports.register = async (req, res) => {
-  const { firstName, lastName, username, email, phoneNumber, password } = req.body;
+  const { firstName, lastName, username, email, phoneNumber, password, role } = req.body;
 
   // Validate all required fields
-  if (!firstName || !lastName || !username || !email || !phoneNumber || !password) {
+  if (!firstName || !lastName || !username || !email || !phoneNumber || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
@@ -19,6 +20,11 @@ exports.register = async (req, res) => {
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res.status(400).json({ message: "Email or Username already exists" });
+    }
+
+    const existingRole = await Role.findById(role);
+    if (!existingRole) {
+      return res.status(400).json({ message: "Invalid role ID" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -30,6 +36,10 @@ exports.register = async (req, res) => {
       email,
       phoneNumber,
       password: hashedPassword,
+      role,
+      permissions: [], // Initialize with empty permissions
+      isEmailVerified: false,
+      status: "active",
     });
 
     await newUser.save();
@@ -39,7 +49,6 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: "Server error during registration" });
   }
 };
-
 
 // Email verification
 exports.verifyEmail = async (req, res) => {
@@ -75,16 +84,17 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Check password if user exists
-    if (password && user.password) {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
+    // Check if the password matches
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    // Ensure isAdmin exists in the response
+    if (user.isAdmin === undefined) user.isAdmin = false;
 
     // Generate Access & Refresh Tokens
     const accessToken = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -94,7 +104,7 @@ exports.login = async (req, res) => {
     // Store Refresh Token in HttpOnly Cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true, // Use `true` in production (requires HTTPS)
+      secure: process.env.NODE_ENV === "development", // Secure only in production
       sameSite: "Strict",
     });
 
