@@ -1,5 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/crmore/public_html/backend.crmore.com/
-    - /bin/cp -R images $DEPLOYPATH
