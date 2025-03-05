@@ -19,21 +19,32 @@ import subscriptionRoutes from "./routes/subscription.routes";
 import saasRoutes from "./routes/saas.routes";
 import userRoutes from "./routes/user.routes";
 import compnayRoutes from "./routes/company.routes";
-
-
 import protectedRoutes from "./routes/protected.routes";
+
+import dashboardRoutes from "./routes/dashboard.routes";
+import departmentRoutes from "./routes/department.routes";
+import employeeRoutes from "./routes/employee.routes";
+import leadRoutes from "./routes/lead.routes";
+import dealRoutes from "./routes/deal.routes";
+import taskRoutes from "./routes/task.routes";
+import projectRoutes from "./routes/project.routes";
+import invoiceRoutes from "./routes/invoice.routes";
+import transactionRoutes from "./routes/transaction.routes";
+import fileRoutes from "./routes/file.routes";
+
+import commentRoutes from "./routes/comment.routes";
+
+import logsRoutes from "./routes/logs.routes";
+import ticketRoutes from "./routes/ticket.routes";
+import feedbackRoutes from "./routes/feedback.routes";
+
+
+import contactsRoutes from "./routes/contacts.routes";
+import badgesRoutes from "./routes/badges.routes"
+
 import { verifyJWT } from "./middleware/authMiddleware";
-import https from "https";
-import fs from "fs";
 
-// Load SSL Certificates
-const sslOptions = {
-  key: fs.readFileSync("./ssl/server.key"),
-  cert: fs.readFileSync("./ssl/server.cert"),
-};
-
-
-// Load environment variabless
+// Load environment variables
 dotenv.config();
 
 // Express App
@@ -51,7 +62,7 @@ app.use(
   cors({
     origin: process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(",")
-      : ["http://localhost:3000", "https://localhost:3000"],
+      : ["http://localhost:3000"],
     credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: "Origin,X-Requested-With,Content-Type,Accept,Authorization",
@@ -65,7 +76,7 @@ app.use(express.json());
 app.use(apiLimiter);
 
 // HTTP Server & WebSocket Setup
-const server = https.createServer(sslOptions, app);
+const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: { origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" },
 });
@@ -130,7 +141,6 @@ app.get("/api/docs/json", (req, res) => {
   res.send(swaggerDocs);
 });
 
-
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", verifyJWT, adminRoutes);
@@ -143,6 +153,23 @@ app.use("/api/user", userRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api/company", compnayRoutes);
 
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/employees", employeeRoutes);
+app.use("/api/leads", leadRoutes);
+app.use("/api/deals", dealRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/invoices", invoiceRoutes);
+app.use("/api/transactions", transactionRoutes);
+app.use("/api/files", fileRoutes);
+app.use("/api/comments", commentRoutes);
+
+app.use("/api/logs", logsRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/contacts", contactsRoutes);
+app.use("/api/badges", badgesRoutes);
 
 // Database Connection with Retry Logic
 const connectToDatabase = async () => {
@@ -157,12 +184,11 @@ const connectToDatabase = async () => {
 connectToDatabase();
 
 // Start Server
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running at: https://localhost:${PORT}`);
-  console.log(`📖 Swagger API Docs: https://localhost:${PORT}/api/docs`);
-  console.log(`📜 Swagger JSON: https://localhost:${PORT}/api/docs/json`);
+  console.log(`🚀 Server running at: http://localhost:${PORT}`);
+  console.log(`📖 Swagger API Docs: http://localhost:${PORT}/api/docs`);
+  console.log(`📜 Swagger JSON: http://localhost:${PORT}/api/docs/json`);
 });
 
 // Function to Send Notifications via WebSocket

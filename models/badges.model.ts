@@ -1,20 +1,24 @@
-import mongoose, { Document, Schema, Model } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
+// ✅ Define Badge Interface
 export interface IBadge extends Document {
   name: string;
-  description: string;
-  icon: string;
+  description?: string;
+  iconUrl?: string;
+  criteria: string;
   createdAt: Date;
 }
 
+// ✅ Define Badge Schema
 const BadgeSchema = new Schema<IBadge>(
   {
     name: { type: String, required: true, unique: true },
-    description: { type: String, required: true },
-    icon: { type: String, required: true }, // URL or local image path
+    description: { type: String },
+    iconUrl: { type: String },
+    criteria: { type: String, required: true }, // e.g. "Completed 10 courses"
   },
   { timestamps: true }
 );
 
-const Badge: Model<IBadge> = mongoose.model<IBadge>("Badge", BadgeSchema);
-export default Badge;
+// ✅ Export Named Model
+export const Badge: Model<IBadge> = mongoose.model<IBadge>("Badge", BadgeSchema);

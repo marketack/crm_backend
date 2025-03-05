@@ -1,0 +1,19 @@
+---
+deployment:
+  tasks:
+    - export NODE_VERSION=18
+    - export APP_DIR=crm_backend
+    - export STARTUP_SCRIPT=server.ts
+
+    # ✅ Use correct Node.js version
+    - /opt/alt/alt-nodejs$NODE_VERSION/root/usr/bin/npm install
+
+    # ✅ Set permissions
+    - chmod 750 $STARTUP_SCRIPT
+
+    # ✅ Install dependencies
+    - cd $APP_DIR && npm install --production
+
+    # ✅ Restart the application using Passenger
+    - passenger stop || true
+    - passenger start --app-type node --startup-file $STARTUP_SCRIPT

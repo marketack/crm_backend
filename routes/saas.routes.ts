@@ -22,7 +22,6 @@ const router = express.Router();
  */
 router.get("/", async (req, res, next) => {
   try {
-    await getSaaSTools(req, res);
   } catch (error) {
     next(error);
   }
