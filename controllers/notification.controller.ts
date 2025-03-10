@@ -42,8 +42,9 @@ export const createNotification = async (req: Request, res: Response, next: Next
  */
 export const getUserNotifications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user?.userId;
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    const user = req as any; // ✅ Cast to avoid TypeScript errors
+    const userId = user.user?.userId;
+        if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       res.status(400).json({ message: "Invalid user ID" });
       return;
     }
@@ -55,7 +56,6 @@ export const getUserNotifications = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
-
 
 
 

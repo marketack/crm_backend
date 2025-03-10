@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
 import { Deal } from "../models/deal.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Deal */
-export const createDeal = async (req: Request, res: Response): Promise<void> => {
+export const createDeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, description, amount, stage, assignedTo, customer, expectedCloseDate } = req.body;
 
@@ -37,7 +44,7 @@ export const getDeals = async (_req: Request, res: Response): Promise<void> => {
 };
 
 /** ✅ Update a Deal */
-export const updateDeal = async (req: Request, res: Response): Promise<void> => {
+export const updateDeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const deal = await Deal.findById(req.params.id);
     if (!deal) {
@@ -61,7 +68,7 @@ export const updateDeal = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Delete a Deal */
-export const deleteDeal = async (req: Request, res: Response): Promise<void> => {
+export const deleteDeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const deal = await Deal.findById(req.params.id);
     if (!deal) {

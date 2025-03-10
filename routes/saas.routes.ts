@@ -6,7 +6,7 @@ import {
   updateSaaSTool,
   deleteSaaSTool,
 } from "../controllers/saasController";
-import { verifyJWT, requireAdmin } from "../middleware/authMiddleware";
+import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
@@ -63,7 +63,7 @@ router.get("/:toolId", async (req, res, next) => {
  *       201:
  *         description: SaaS tool created
  */
-router.post("/", verifyJWT, requireAdmin, async (req, res, next) => {
+router.post("/", verifyJWT, requireRole(["admin", "owner"]), async (req, res, next) => {
   try {
     await createSaaSTool(req, res);
   } catch (error) {
@@ -89,7 +89,7 @@ router.post("/", verifyJWT, requireAdmin, async (req, res, next) => {
  *       200:
  *         description: SaaS tool updated
  */
-router.put("/:toolId", verifyJWT, requireAdmin, async (req, res, next) => {
+router.put("/:toolId", verifyJWT, requireRole(["admin", "owner"]), async (req, res, next) => {
   try {
     await updateSaaSTool(req, res);
   } catch (error) {
@@ -115,7 +115,7 @@ router.put("/:toolId", verifyJWT, requireAdmin, async (req, res, next) => {
  *       200:
  *         description: SaaS tool deleted
  */
-router.delete("/:toolId", verifyJWT, requireAdmin, async (req, res, next) => {
+router.delete("/:toolId", verifyJWT, requireRole(["admin", "owner"]), async (req, res, next) => {
   try {
     await deleteSaaSTool(req, res);
   } catch (error) {

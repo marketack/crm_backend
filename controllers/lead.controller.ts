@@ -1,9 +1,16 @@
 import { Request, Response } from "express";
 import { Lead } from "../models/lead.model";
 import { calculateLeadScore } from "../utils/lead.utils"; // AI-powered lead scoring
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Lead */
-export const createLead = async (req: Request, res: Response): Promise<void> => {
+export const createLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, email, phone, source, assignedTo, status, engagementScore } = req.body;
 
@@ -27,7 +34,7 @@ export const createLead = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Get All Leads with Filters */
-export const getLeads = async (req: Request, res: Response): Promise<void> => {
+export const getLeads = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, source, assignedTo } = req.query;
 
@@ -47,7 +54,7 @@ export const getLeads = async (req: Request, res: Response): Promise<void> => {
 };
 
 /** ✅ Update a Lead */
-export const updateLead = async (req: Request, res: Response): Promise<void> => {
+export const updateLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) {
@@ -80,7 +87,7 @@ export const updateLead = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Delete a Lead */
-export const deleteLead = async (req: Request, res: Response): Promise<void> => {
+export const deleteLead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) {

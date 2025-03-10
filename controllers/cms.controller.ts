@@ -4,7 +4,14 @@ import User from "../models/user.model";
 import Blog from "../models/blog.model";
 import sendEmail from "../utils/emailService";
 import slugify from "slugify"; // ✅ Slug Generation
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /**
  * ✅ Get Company Details
  */

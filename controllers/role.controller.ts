@@ -1,11 +1,18 @@
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import Role from "../models/role.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /**
  * ✅ Create a New Role
  */
-export const createRole = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+export const createRole = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const { name, permissions } = req.body;
 
   if (!name || !permissions) {
@@ -40,7 +47,7 @@ export const getAllRoles = asyncHandler(async (_req: Request, res: Response): Pr
 /**
  * ✅ Update Role Permissions
  */
-export const updateRolePermissions = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+export const updateRolePermissions = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const { roleId } = req.params;
   const { permissions } = req.body;
 
@@ -67,7 +74,7 @@ export const updateRolePermissions = asyncHandler(async (req: Request, res: Resp
 /**
  * ✅ Delete a Role
  */
-export const deleteRole = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+export const deleteRole = asyncHandler(async (req: AuthRequest, res: Response): Promise<void> => {
   const { roleId } = req.params;
 
   try {

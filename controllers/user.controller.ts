@@ -8,6 +8,14 @@ import ActivityLog from "../models/activityLog.model";
 import crypto from "crypto";
 import Subscription from "../models/subscription.model";
 
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /**
  * ✅ Convert String to ObjectId Safely
  */
@@ -18,7 +26,7 @@ const toObjectId = (id: string | Types.ObjectId): Types.ObjectId => {
 /**
  * ✅ Get User Profile by ID (From URL Params)
  */
-export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
+export const getUserProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
 
@@ -113,7 +121,7 @@ export const updateUserProfile = async (req: Request, res: Response, next: NextF
 /**
  * 📜 Get User Activity Logs
  */
-export const getUserActivityLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getUserActivityLogs = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
@@ -132,7 +140,7 @@ export const getUserActivityLogs = async (req: Request, res: Response, next: Nex
 /**
  * 🔑 Generate API Key (Valid for 1 Year)
  */
-export const generateApiKeyForUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const generateApiKeyForUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
@@ -155,7 +163,7 @@ export const generateApiKeyForUser = async (req: Request, res: Response, next: N
 /**
  * 🚫 Revoke API Key
  */
-export const revokeApiKeyForUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const revokeApiKeyForUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
@@ -175,7 +183,7 @@ export const revokeApiKeyForUser = async (req: Request, res: Response, next: Nex
 /**
  * 🛑 Deactivate User Account (Soft Delete)
  */
-export const deactivateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const deactivateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
     if (!userId) {
@@ -252,7 +260,7 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const getUserSubscriptionStatus = async (req: Request, res: Response): Promise<void> => {
+export const getUserSubscriptionStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;
     if (!userId) {

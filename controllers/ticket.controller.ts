@@ -1,9 +1,16 @@
 import { Request, Response } from "express";
 import { Ticket } from "../models/ticket.model";
 import mongoose from "mongoose";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Support Ticket */
-export const createTicket = async (req: Request, res: Response): Promise<void> => {
+export const createTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { subject, description, priority, category } = req.body;
 
@@ -24,7 +31,7 @@ export const createTicket = async (req: Request, res: Response): Promise<void> =
 };
 
 /** ✅ Get All Tickets with Filters */
-export const getTickets = async (req: Request, res: Response): Promise<void> => {
+export const getTickets = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, priority, category } = req.query;
 
@@ -49,7 +56,7 @@ export const getTickets = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Update a Ticket */
-export const updateTicket = async (req: Request, res: Response): Promise<void> => {
+export const updateTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) {
@@ -73,7 +80,7 @@ export const updateTicket = async (req: Request, res: Response): Promise<void> =
 };
 
 /** ✅ Add a Message to a Ticket */
-export const addTicketMessage = async (req: Request, res: Response): Promise<void> => {
+export const addTicketMessage = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const ticket = await Ticket.findById(req.params.id);
       if (!ticket) {
@@ -109,7 +116,7 @@ export const addTicketMessage = async (req: Request, res: Response): Promise<voi
   };
 
 /** ✅ Delete a Ticket */
-export const deleteTicket = async (req: Request, res: Response): Promise<void> => {
+export const deleteTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const ticket = await Ticket.findById(req.params.id);
     if (!ticket) {

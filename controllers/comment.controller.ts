@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
 import { Comment } from "../models/comment.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Comment */
-export const createComment = async (req: Request, res: Response): Promise<void> => {
+export const createComment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { relatedTo, message } = req.body;
     const userId = req.user?.userId; // ✅ FIXED: Use `userId` instead of `id`
@@ -26,7 +33,7 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Get Comments */
-export const getComments = async (req: Request, res: Response): Promise<void> => {
+export const getComments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const relatedTo = req.query.relatedTo || req.params.relatedTo;
 
@@ -44,7 +51,7 @@ export const getComments = async (req: Request, res: Response): Promise<void> =>
 };
 
 /** ✅ Update a Comment */
-export const updateComment = async (req: Request, res: Response): Promise<void> => {
+export const updateComment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { message } = req.body;
     const { id } = req.params;
@@ -71,7 +78,7 @@ export const updateComment = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Delete a Comment */
-export const deleteComment = async (req: Request, res: Response): Promise<void> => {
+export const deleteComment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user?.userId; // ✅ FIXED: Use `userId`

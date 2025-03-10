@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
-import { requireAdmin, verifyJWT } from "../middleware/authMiddleware";
+import {requireRole,  verifyJWT } from "../middleware/authMiddleware";
 import {
   createRole,
   getAllUsers,
@@ -43,7 +43,7 @@ const asyncWrapper =
  *       403:
  *         description: Forbidden (Admin access required)
  */
-router.get("/users", verifyJWT, requireAdmin, asyncWrapper(getAllUsers));
+router.get("/users", verifyJWT,  requireRole(["admin"]), asyncWrapper(getAllUsers));
 
 /**
  * @swagger
@@ -65,6 +65,6 @@ router.get("/users", verifyJWT, requireAdmin, asyncWrapper(getAllUsers));
  *       404:
  *         description: User not found
  */
-router.get("/users/:userId", verifyJWT, requireAdmin, asyncWrapper(getUserById));
+router.get("/users/:userId", verifyJWT, requireRole(["admin"]), asyncWrapper(getUserById));
 
 export default router;

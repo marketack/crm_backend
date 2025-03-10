@@ -1,29 +1,12 @@
 import express from "express";
 import {
   verifyJWT,
-  requireAdmin,
   requireRole,
-  restrictSelfModification,
 } from "../middleware/authMiddleware";
 import { updateUserProfile } from "../controllers/user.controller";
 
 const router = express.Router();
 
-/**
- * @swagger
- * /api/protected:
- *   get:
- *     summary: Access a protected route
- *     tags: [Protected]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Successfully accessed protected route
- */
-router.get("/protected", verifyJWT, (req, res) => {
-  res.json({ message: "You accessed a protected route!", user: req.user });
-});
 
 /**
  * @swagger
@@ -37,7 +20,7 @@ router.get("/protected", verifyJWT, (req, res) => {
  *       200:
  *         description: Successfully accessed admin dashboard
  */
-router.get("/admin/dashboard", verifyJWT, requireAdmin, (req, res) => {
+router.get("/admin/dashboard", verifyJWT, requireRole(["admin", "sales"]), (req, res) => {
   res.json({ message: "Admin dashboard access granted!" });
 });
 
@@ -82,6 +65,6 @@ router.get("/role/protected", verifyJWT, requireRole(["instructor", "customer"])
  *       403:
  *         description: Forbidden - Cannot modify other users
  */
-router.put("/user/update/:userId", verifyJWT, restrictSelfModification, updateUserProfile);
+router.put("/user/update/:userId", verifyJWT, updateUserProfile);
 
 export default router;

@@ -8,7 +8,7 @@ import {
   deleteCourse,
   addLesson,
 } from "../controllers/courseController";
-import { verifyJWT, requireAdmin, requireRole } from "../middleware/authMiddleware";
+import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 
 /**
  * @swagger
@@ -85,7 +85,7 @@ router.post("/", verifyJWT, requireRole(["admin", "instructor"]), createCourse);
  *       200:
  *         description: Course reviewed successfully
  */
-router.put("/review/:courseId", verifyJWT, requireAdmin, reviewCourse);
+router.put("/review/:courseId", verifyJWT, requireRole(["admin", "owner"]), reviewCourse);
 
 /**
  * @swagger

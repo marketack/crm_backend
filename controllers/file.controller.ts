@@ -3,7 +3,14 @@ import { File } from "../models/file.model";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 // ✅ Configure Multer for File Uploads (Modify for AWS S3/Cloudinary)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -21,7 +28,7 @@ const storage = multer.diskStorage({
 export const upload = multer({ storage }).single("file");
 
 /** ✅ Upload File */
-export const uploadFile = async (req: Request, res: Response): Promise<void> => {
+export const uploadFile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.file) {
       res.status(400).json({ message: "No file uploaded" });
@@ -54,7 +61,7 @@ export const getFiles = async (_req: Request, res: Response): Promise<void> => {
 };
 
 /** ✅ Delete a File */
-export const deleteFile = async (req: Request, res: Response): Promise<void> => {
+export const deleteFile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const file = await File.findById(req.params.id);
     if (!file) {

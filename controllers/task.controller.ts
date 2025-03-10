@@ -1,9 +1,16 @@
 import { Request, Response } from "express";
 import { Task } from "../models/task.model";
 import { Project } from "../models/project.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Task */
-export const createTask = async (req: Request, res: Response): Promise<void> => {
+export const createTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { project, title, description, assignedTo, priority, dueDate, status } = req.body;
 
@@ -33,7 +40,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Get All Tasks with Filtering */
-export const getTasks = async (req: Request, res: Response): Promise<void> => {
+export const getTasks = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, priority, project, assignedTo } = req.query;
 
@@ -55,7 +62,7 @@ export const getTasks = async (req: Request, res: Response): Promise<void> => {
 };
 
 /** ✅ Update a Task */
-export const updateTask = async (req: Request, res: Response): Promise<void> => {
+export const updateTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
@@ -79,7 +86,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
 };
 
 /** ✅ Delete a Task */
-export const deleteTask = async (req: Request, res: Response): Promise<void> => {
+export const deleteTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {

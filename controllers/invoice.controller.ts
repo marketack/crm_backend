@@ -2,8 +2,17 @@ import { Request, Response } from "express";
 import { Invoice } from "../models/invoice.model";
 import { generateInvoiceNumber, calculateInvoiceTotals } from "../utils/invoice.utils"; // Utility functions
 
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
+
 /** ✅ Create an Invoice */
-export const createInvoice = async (req: Request, res: Response): Promise<void> => {
+export const createInvoice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { customer, items, taxes, discount, dueDate, currency } = req.body;
 
@@ -36,7 +45,7 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Get All Invoices with Filters */
-export const getInvoices = async (req: Request, res: Response): Promise<void> => {
+export const getInvoices = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, customer, currency } = req.query;
 
@@ -56,7 +65,7 @@ export const getInvoices = async (req: Request, res: Response): Promise<void> =>
 };
 
 /** ✅ Update an Invoice */
-export const updateInvoice = async (req: Request, res: Response): Promise<void> => {
+export const updateInvoice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
@@ -85,7 +94,7 @@ export const updateInvoice = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Record a Payment for an Invoice */
-export const recordPayment = async (req: Request, res: Response): Promise<void> => {
+export const recordPayment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {
@@ -116,7 +125,7 @@ export const recordPayment = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Delete an Invoice */
-export const deleteInvoice = async (req: Request, res: Response): Promise<void> => {
+export const deleteInvoice = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) {

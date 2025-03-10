@@ -1,10 +1,18 @@
 import { Request, Response } from "express";
 import SaaSTool from "../models/saasTool.model";
 
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /**
  * Get all SaaS tools (Public)
  */
-export const getSaaSTools = async (req: Request, res: Response) => {
+export const getSaaSTools = async (req: AuthRequest, res: Response) => {
   try {
     const tools = await SaaSTool.find();
     res.json(tools);
@@ -30,7 +38,7 @@ export const getSaaSToolById = async (req: Request, res: Response) => {
 /**
  * Create a new SaaS tool (Admin Only)
  */
-export const createSaaSTool = async (req: Request, res: Response) => {
+export const createSaaSTool = async (req: AuthRequest, res: Response)=> {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 

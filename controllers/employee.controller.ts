@@ -10,23 +10,18 @@ const handleError = (res: Response, error: any, message: string) => {
   res.status(500).json({ message, error: error.message });
 };
 
-/** ✅ Assign Employee Role in a Company */
+/** ✅ Assign Employee to Company (Auto Role: "staff") */
 export const assignEmployeeRole = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, position, department, salary, roleId } = req.body;
-    const adminId = req.user?.userId;
+    const { userId, position, department, salary } = req.body;
 
-    if (!userId || !position || !department || !salary || !roleId) {
+    // ✅ Validate required fields
+    if (!userId || !position || !department || !salary) {
       res.status(400).json({ message: "All fields are required" });
       return;
     }
 
-    const adminUser = await User.findById(adminId).populate("company");
-    if (!adminUser || !adminUser.company) {
-      res.status(403).json({ message: "Unauthorized: You must be part of a company" });
-      return;
-    }
-
+    // ✅ Fetch the employee user
     const employeeUser = await User.findById(userId);
     if (!employeeUser) {
       res.status(404).json({ message: "User not found" });
@@ -38,70 +33,32 @@ export const assignEmployeeRole = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // ✅ Fix: Ensure `roleId` is retrieved and properly cast
-    const role = await Role.findById(roleId).lean();
-    if (!role || !role._id) {
-      res.status(404).json({ message: "Role not found" });
+    // ✅ Ensure "staff" role is assigned by default
+    const staffRole = await Role.findOne({ name: "staff" }).lean();
+    if (!staffRole || !staffRole._id) {
+      res.status(500).json({ message: "Default role 'staff' not found" });
       return;
     }
 
+    // ✅ Assign employee to company with "staff" role
     employeeUser.position = position;
     employeeUser.department = new mongoose.Types.ObjectId(department);
     employeeUser.salary = salary;
-    employeeUser.company = adminUser.company._id;
-    employeeUser.role = new mongoose.Types.ObjectId(role._id.toString()); // ✅ Fix applied here
+    employeeUser.company = (req as any).user?.company;
+    employeeUser.role = new mongoose.Types.ObjectId(staffRole._id.toString()); // ✅ Assign "staff" role
 
     await employeeUser.save();
 
+    // ✅ Add employee to company's employee list
     await Company.findByIdAndUpdate(
-      adminUser.company._id,
-      { $push: { employees: employeeUser._id, team: employeeUser._id } },
+      employeeUser.company,
+      { $push: { employees: employeeUser._id } },
       { new: true }
     );
 
     res.status(201).json({ message: "Employee added successfully", employeeUser });
   } catch (error) {
     handleError(res, error, "Error adding employee to company");
-  }
-};
-
-/** ✅ Update Employee Role */
-export const updateEmployeeRole = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    const { roleId } = req.body;
-    const adminId = req.user?.userId;
-
-    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(roleId)) {
-      res.status(400).json({ message: "Invalid User ID or Role ID" });
-      return;
-    }
-
-    const adminUser = await User.findById(adminId);
-    if (!adminUser || !adminUser.company) {
-      res.status(403).json({ message: "Unauthorized: You must be part of a company" });
-      return;
-    }
-
-    const employeeUser = await User.findById(userId);
-    if (!employeeUser || String(employeeUser.company) !== String(adminUser.company._id)) {
-      res.status(404).json({ message: "Employee not found in your company" });
-      return;
-    }
-
-    // ✅ Fix: Ensure role is retrieved properly and `_id` is correctly assigned
-    const role = await Role.findById(roleId).lean();
-    if (!role || !role._id) {
-      res.status(404).json({ message: "Role not found" });
-      return;
-    }
-
-    employeeUser.role = new mongoose.Types.ObjectId(role._id.toString()); // ✅ Fix applied here
-    await employeeUser.save();
-
-    res.json({ message: "Employee role updated successfully", employeeUser });
-  } catch (error) {
-    handleError(res, error, "Error updating employee role");
   }
 };
 
@@ -121,14 +78,14 @@ export const removeEmployeeRole = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // ✅ Fix: Ensure we correctly await role retrieval
+    // ✅ Assign default role
     const defaultRole = await Role.findOne({ name: "customer" }).lean();
     if (!defaultRole || !defaultRole._id) {
       res.status(500).json({ message: "Default role 'customer' not found" });
       return;
     }
 
-    employeeUser.role = new mongoose.Types.ObjectId(defaultRole._id.toString()); // ✅ Fix applied here
+    employeeUser.role = new mongoose.Types.ObjectId(defaultRole._id.toString());
     await employeeUser.save();
 
     res.json({ message: "Employee role removed successfully", employeeUser });
@@ -137,40 +94,70 @@ export const removeEmployeeRole = async (req: Request, res: Response): Promise<v
   }
 };
 
-
-/** ✅ Get Employees with Role & Permissions */
-/** ✅ Get Employees with Role & Department (From User Model) */
+/** ✅ Get Employees of the Company */
 export const getCompanyEmployees = async (req: Request, res: Response): Promise<void> => {
   try {
-    const adminId = req.user?.userId;
-    const adminUser = await User.findById(adminId);
+    const user = req as any; // ✅ Cast req to any to avoid TS errors
 
-    if (!adminUser || !adminUser.company) {
+    if (!user.user?.company) {
       res.status(403).json({ message: "Unauthorized: You must be part of a company" });
       return;
     }
 
-    // ✅ Fetch Employees for the Admin's Company
-    const employees = await User.find({ company: adminUser.company._id })
+    // ✅ Fetch Employees for the User's Company
+    const employees = await User.find({ company: user.user.company })
       .populate("company", "name") // ✅ Get Company Name
       .populate("role", "name permissions") // ✅ Get Role Name & Permissions
-      .select("name email position department role company") // ✅ Select Required Fields
+      .select("name email position department role company")
       .lean(); // ✅ Convert Mongoose Objects to Plain JSON
 
-    // ✅ Extract Department from User Model Instead of Department Model
+    // ✅ Format employee data
     const formattedEmployees = employees.map((employee) => ({
       _id: employee._id,
       name: employee.name,
       email: employee.email,
       position: employee.position,
-      department: employee.department ? employee.department.toString() : "No Department", // ✅ Convert ObjectId to String
+      department: employee.department ? employee.department.toString() : "No Department",
       role: employee.role,
       company: employee.company,
     }));
 
     res.json({ success: true, employees: formattedEmployees });
   } catch (error) {
-    console.error("❌ Error fetching employees:", error);
-    res.status(500).json({ message: "Error fetching employees", error: error.message });
+    handleError(res, error, "Error fetching employees");
+  }
+};
+
+
+/** ✅ Update Employee Role (Modify Later) */
+export const updateEmployeeRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { roleId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(roleId)) {
+      res.status(400).json({ message: "Invalid User ID or Role ID" });
+      return;
+    }
+
+    const employeeUser = await User.findById(userId);
+    if (!employeeUser || String(employeeUser.company) !== String((req as any).user.company)) {
+      res.status(404).json({ message: "Employee not found in your company" });
+      return;
+    }
+
+    // ✅ Ensure role exists
+    const role = await Role.findById(roleId).lean();
+    if (!role || !role._id) {
+      res.status(404).json({ message: "Role not found" });
+      return;
+    }
+
+    employeeUser.role = new mongoose.Types.ObjectId(role._id.toString());
+    await employeeUser.save();
+
+    res.json({ message: "Employee role updated successfully", employeeUser });
+  } catch (error) {
+    handleError(res, error, "Error updating employee role");
   }
 };

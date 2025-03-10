@@ -4,8 +4,15 @@ import {Project} from "../models/project.model";
 import {Deal} from "../models/deal.model";
 import {Invoice} from "../models/invoice.model";
 import {Task} from "../models/task.model";
-
-export const getDashboardStats = async (req: Request, res: Response) => {
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
     const totalEmployees = await Employee.countDocuments();
     const totalProjects = await Project.countDocuments();

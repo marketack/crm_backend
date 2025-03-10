@@ -4,14 +4,23 @@ import Course from "../models/course.model";
 import User from "../models/user.model";
 import Notification from "../models/notification.model";
 
+// ✅ Custom Request Type to Fix TypeScript Errors
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
+
+
 /**
  * 🔍 Get All Courses (Public & Admin)
  */
-export const getCourses = async (req: Request, res: Response): Promise<void> => {
+export const getCourses = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;
-
-    // ✅ Fix: Populate `role` before accessing `role.name`
     const user = userId ? await User.findById(userId).populate("role", "name") : null;
 
     let query: any = { status: "approved" };
@@ -29,6 +38,7 @@ export const getCourses = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+
 /**
  * ✅ Update Course (Admins & Course Creator Only)
  */
@@ -36,7 +46,10 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
   try {
     const { courseId } = req.params;
     const { title, description, price } = req.body;
-    const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;
+    
+    // ✅ Fix: Explicitly cast req to include user
+    const user = req as any; 
+    const userId = user.user?.userId ? new Types.ObjectId(user.user.userId) : null;
 
     if (!Types.ObjectId.isValid(courseId)) {
       res.status(400).json({ message: "Invalid course ID" });
@@ -49,16 +62,17 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // ✅ Fix: Populate `role` before checking `role.name`
-    const user = await User.findById(userId).populate("role", "name");
+    // ✅ Ensure role is populated before checking name
+    const userData = await User.findById(userId).populate("role", "name").lean();
 
-    if (
-      !user ||
-      (course.createdBy.toString() !== userId.toString() &&
-        typeof user.role === "object" &&
-        "name" in user.role &&
-        user.role.name !== "admin")
-    ) {
+    // ✅ Extract role name safely
+    const userRole =
+      userData?.role && typeof userData.role === "object" && "name" in userData.role
+        ? (userData.role as { name: string }).name
+        : null;
+
+    // ✅ Check role correctly
+    if (!userData || (course.createdBy.toString() !== userId.toString() && userRole !== "admin")) {
       res.status(403).json({ message: "Unauthorized to update this course" });
       return;
     }
@@ -75,11 +89,10 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-
 /**
  * 🆕 Create a Course (User or Admin)
  */
-export const createCourse = async (req: Request, res: Response): Promise<void> => {
+export const createCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, description, price } = req.body;
     const userId = new Types.ObjectId(req.user?.userId);
@@ -121,7 +134,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
 /**
  * ✅ Approve or Reject Course (Admin Only)
  */
-export const reviewCourse = async (req: Request, res: Response): Promise<void> => {
+export const reviewCourse = async (req: AuthRequest, res: Response): Promise<void> => { 
   try {
     const { courseId } = req.params;
     const { status } = req.body;
@@ -160,7 +173,7 @@ export const reviewCourse = async (req: Request, res: Response): Promise<void> =
 /**
  * 🎓 Enroll in a Course
  */
-export const enrollCourse = async (req: Request, res: Response): Promise<void> => {
+export const enrollCourse = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { courseId } = req.body;
     const userId = new Types.ObjectId(req.user?.userId);
@@ -211,7 +224,7 @@ export const enrollCourse = async (req: Request, res: Response): Promise<void> =
 /**
  * 📚 Add Lesson to Course (Only Course Creator/Admin)
  */
-export const addLesson = async (req: Request, res: Response): Promise<void> => {
+export const addLesson = async (req: AuthRequest, res: Response): Promise<void> => { 
   try {
     const { courseId } = req.params;
     const { title, content, videoUrl, duration } = req.body;
@@ -259,7 +272,7 @@ export const addLesson = async (req: Request, res: Response): Promise<void> => {
 /**
  * 🔄 Check Enrollment Status
  */
-export const checkEnrollment = async (req: Request, res: Response) => {
+export const checkEnrollment = async (req: AuthRequest, res: Response): Promise<void> => { 
   try {
     const { courseId } = req.params;
     const userId = req.user?.userId;
@@ -291,7 +304,7 @@ export const checkEnrollment = async (req: Request, res: Response) => {
 /**
  * ❌ Delete Course (Admins & Course Creator Only)
  */
-export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
+export const deleteCourse = async (req: AuthRequest, res: Response): Promise<void> => { 
   try {
     const { courseId } = req.params;
     const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;

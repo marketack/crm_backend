@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
 import { Log } from "../models/logs.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Get System Logs with Filtering */
-export const getLogs = async (req: Request, res: Response): Promise<void> => {
+export const getLogs = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { user, action, startDate, endDate } = req.query;
 
@@ -23,7 +30,7 @@ export const getLogs = async (req: Request, res: Response): Promise<void> => {
 };
 
 /** ✅ Clear System Logs (Admin-Only) */
-export const clearLogs = async (req: Request, res: Response): Promise<void> => {
+export const clearLogs = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     // Ensure only admins can clear logs
     if (!req.user?.roles.includes("admin")) {

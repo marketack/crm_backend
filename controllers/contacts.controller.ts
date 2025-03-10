@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
 import { Contact } from "../models/contacts.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Contact */
-export const createContact = async (req: Request, res: Response): Promise<void> => {
+export const createContact = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, email, phone, company, position, notes, type, status, source, assignedTo } = req.body;
 
@@ -28,7 +35,7 @@ export const createContact = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Update a Contact */
-export const updateContact = async (req: Request, res: Response): Promise<void> => {
+export const updateContact = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const contact = await Contact.findById(req.params.id);
     if (!contact) {
@@ -52,7 +59,7 @@ export const updateContact = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Delete a Contact */
-export const deleteContact = async (req: Request, res: Response): Promise<void> => {
+export const deleteContact = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const contact = await Contact.findById(req.params.id);
     if (!contact) {

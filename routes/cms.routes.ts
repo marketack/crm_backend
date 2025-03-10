@@ -19,7 +19,7 @@ import {
   addComment,
 } from "../controllers/cms.controller";
 
-import { verifyJWT, requireAdmin } from "../middleware/authMiddleware";
+import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
@@ -209,7 +209,7 @@ router.get("/services", getServices);
  *       201:
  *         description: Blog post created successfully
  */
-router.post("/blogs", verifyJWT, requireAdmin, addBlogPost);
+router.post("/blogs", verifyJWT, requireRole(["admin","owner"]), addBlogPost);
 
 /**
  * @swagger
@@ -234,7 +234,7 @@ router.post("/blogs", verifyJWT, requireAdmin, addBlogPost);
  *       200:
  *         description: Newsletter sent successfully
  */
-router.post("/send-newsletter", verifyJWT, requireAdmin, sendNewsletter);
+router.post("/send-newsletter", verifyJWT, requireRole(["admin", "owner"]), sendNewsletter);
 
 /**
  * @swagger
@@ -260,7 +260,7 @@ router.post("/send-newsletter", verifyJWT, requireAdmin, sendNewsletter);
  *       400:
  *         description: Invalid request data
  */
-router.put("/about-us", verifyJWT, requireAdmin, updateAboutUs);
+router.put("/about-us", verifyJWT, requireRole(["admin", "owner"]), updateAboutUs);
 
 /**
  * @swagger
@@ -295,7 +295,7 @@ router.put("/about-us", verifyJWT, requireAdmin, updateAboutUs);
  *       400:
  *         description: Invalid request data
  */
-router.put("/team", verifyJWT, requireAdmin, updateTeam);
+router.put("/team", verifyJWT, requireRole(["admin", "owner"]), updateTeam);
 
 /**
  * @swagger
@@ -326,7 +326,7 @@ router.put("/team", verifyJWT, requireAdmin, updateTeam);
  *       400:
  *         description: Invalid request data
  */
-router.put("/contact-us", verifyJWT, requireAdmin, updateContactUs);
+router.put("/contact-us", verifyJWT, requireRole(["admin", "owner"]), updateContactUs);
 
 /**
  * @swagger
@@ -359,7 +359,7 @@ router.put("/contact-us", verifyJWT, requireAdmin, updateContactUs);
  *       400:
  *         description: Invalid request data
  */
-router.post("/services", verifyJWT, requireAdmin, addService);
+router.post("/services", verifyJWT, requireRole(["admin", "owner"]), addService);
 
 /**
  * @swagger
@@ -397,7 +397,7 @@ router.post("/services", verifyJWT, requireAdmin, addService);
  *       404:
  *         description: Service not found
  */
-router.put("/services", verifyJWT, requireAdmin, updateService);
+router.put("/services", verifyJWT, requireRole(["admin", "owner"]), updateService);
 
 /**
  * @swagger
@@ -420,6 +420,6 @@ router.put("/services", verifyJWT, requireAdmin, updateService);
  *       404:
  *         description: Service not found
  */
-router.delete("/services/:serviceId", verifyJWT, requireAdmin, deleteService);
+router.delete("/services/:serviceId", verifyJWT, requireRole(["admin", "owner"]), deleteService);
 
 export default router;

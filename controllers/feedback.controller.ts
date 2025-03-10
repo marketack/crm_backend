@@ -1,8 +1,15 @@
 import { Request, Response } from "express";
 import { Feedback } from "../models/feedback.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Submit Feedback */
-export const submitFeedback = async (req: Request, res: Response): Promise<void> => {
+export const submitFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { feedbackType, targetId, message, rating } = req.body;
 
@@ -22,7 +29,7 @@ export const submitFeedback = async (req: Request, res: Response): Promise<void>
 };
 
 /** ✅ Get All Feedback */
-export const getFeedback = async (req: Request, res: Response): Promise<void> => {
+export const getFeedback = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { feedbackType } = req.query;
 

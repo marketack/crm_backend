@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyJWT, requireAdmin, requireRole } from "../middleware/authMiddleware";
+import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 import { createRole, getAllRoles, updateRolePermissions, deleteRole } from "../controllers/role.controller";
 
 const router = express.Router();
@@ -14,6 +14,6 @@ router.get("/", verifyJWT, requireRole(["admin", "customer","owner"]), getAllRol
 router.put("/:roleId", verifyJWT, requireRole(["admin", "customer","owner"]), updateRolePermissions);
 
 // ✅ Only admins can delete roles
-router.delete("/:roleId", verifyJWT, requireAdmin, deleteRole);
+router.delete("/:roleId", verifyJWT, requireRole(["admin", "owner"]), deleteRole);
 
 export default router;

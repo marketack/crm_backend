@@ -3,10 +3,20 @@ import Subscription from "../models/subscription.model";
 import SaaSTool from "../models/saasTool.model";
 import Notification from "../models/notification.model";
 
+// ✅ Define a custom request type to include `user`
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
+
 /**
  * ✅ Get all subscriptions of a user
  */
-export const getUserSubscriptions = async (req: Request, res: Response) => {
+export const getUserSubscriptions = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -21,10 +31,11 @@ export const getUserSubscriptions = async (req: Request, res: Response) => {
   }
 };
 
+
 /**
  * ✅ Subscribe a user to a SaaS tool with validation
  */
-export const subscribeToTool = async (req: Request, res: Response) => {
+export const subscribeToTool = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -37,7 +48,9 @@ export const subscribeToTool = async (req: Request, res: Response) => {
 
     // ✅ Prevent duplicate subscriptions
     const existingSubscription = await Subscription.findOne({
-      user: userId, saasTool: toolId, status: "active"
+      user: userId,
+      saasTool: toolId,
+      status: "active"
     });
 
     if (existingSubscription) {
@@ -93,7 +106,7 @@ export const subscribeToTool = async (req: Request, res: Response) => {
 /**
  * ✅ Unsubscribe a user from a SaaS tool
  */
-export const unsubscribeFromTool = async (req: Request, res: Response) => {
+export const unsubscribeFromTool = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });

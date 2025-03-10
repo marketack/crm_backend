@@ -121,19 +121,17 @@ export const createCompanyWithDepartments = asyncHandler(async (req: Request, re
   }
 });
 
-
 export const getAllCompanies = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("📡 Fetching companies for user:", req.user?.userId);
+    console.log("📡 Fetching companies for user:", (req as any).user?.userId);
 
-    // ✅ Ensure user is authenticated
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
       return;
     }
 
     // ✅ If the user is an admin, return all companies
-    if (req.user.roles.includes("admin")) {
+    if ((req as any).user.roles.includes("admin")) {
       console.log("✅ Admin access: Returning all companies");
       const companies = await Company.find().lean();
       res.status(200).json({ success: true, companies });
@@ -141,14 +139,12 @@ export const getAllCompanies = asyncHandler(async (req: Request, res: Response):
     }
 
     // ✅ Ensure user has a company
-    if (!req.user.company) {
+    if (!(req as any).user.company) {
       res.status(403).json({ success: false, message: "You do not belong to a company." });
       return;
     }
 
-    // ✅ Fetch only the user's company
-    const company = await Company.findById(req.user.company).lean();
-
+    const company = await Company.findById((req as any).user.company).lean();
     if (!company) {
       res.status(404).json({ success: false, message: "Company not found." });
       return;
@@ -161,7 +157,6 @@ export const getAllCompanies = asyncHandler(async (req: Request, res: Response):
     res.status(500).json({ success: false, message: "Error fetching company", error });
   }
 });
-
 
 /**
  * ✅ Update Company Details
@@ -176,7 +171,16 @@ export const updateCompany = asyncHandler(async (req: Request, res: Response) =>
       return;
     }
 
-    const company = await Company.findByIdAndUpdate(toObjectId(companyId), updates, { new: true });
+    if (!(req as any).user.company) {
+      res.status(403).json({ success: false, message: "You do not belong to a company." });
+      return;
+    }
+
+    const company = await Company.findByIdAndUpdate(
+      companyId,
+      updates,
+      { new: true }
+    );
 
     if (!company) {
       res.status(404).json({ success: false, message: "Company not found" });
@@ -189,6 +193,7 @@ export const updateCompany = asyncHandler(async (req: Request, res: Response) =>
   }
 });
 
+
 /** ✅ Delete a Company */
 export const deleteCompany = asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -199,13 +204,18 @@ export const deleteCompany = asyncHandler(async (req: Request, res: Response) =>
       return;
     }
 
-    await Company.findByIdAndDelete(toObjectId(companyId));
+    if (!(req as any).user.company) {
+      res.status(403).json({ success: false, message: "You do not belong to a company." });
+      return;
+    }
 
+    await Company.findByIdAndDelete(companyId);
     res.status(200).json({ success: true, message: "Company deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error deleting company", error });
   }
 });
+
 
 /** ✅ Add a New Department to a Company */
 /**

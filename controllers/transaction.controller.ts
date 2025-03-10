@@ -1,9 +1,16 @@
 import { Request, Response } from "express";
 import { Transaction } from "../models/transaction.model";
 import { detectFraud } from "../utils/transaction.utils"; // Fraud detection utility
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Transaction */
-export const createTransaction = async (req: Request, res: Response): Promise<void> => {
+export const createTransaction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { user, amount, currency, paymentMethod, status, referenceId, details } = req.body;
 
@@ -32,7 +39,7 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
 };
 
 /** ✅ Get All Transactions with Filters */
-export const getTransactions = async (req: Request, res: Response): Promise<void> => {
+export const getTransactions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { user, status, paymentMethod } = req.query;
 
@@ -49,7 +56,7 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
 };
 
 /** ✅ Update a Transaction */
-export const updateTransaction = async (req: Request, res: Response): Promise<void> => {
+export const updateTransaction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const transaction = await Transaction.findById(req.params.id);
     if (!transaction) {
@@ -73,7 +80,7 @@ export const updateTransaction = async (req: Request, res: Response): Promise<vo
 };
 
 /** ✅ Delete a Transaction */
-export const deleteTransaction = async (req: Request, res: Response): Promise<void> => {
+export const deleteTransaction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const transaction = await Transaction.findById(req.params.id);
     if (!transaction) {

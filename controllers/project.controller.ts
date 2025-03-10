@@ -1,9 +1,16 @@
 import { Request, Response } from "express";
 import { Project } from "../models/project.model";
 import { Task } from "../models/task.model";
-
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    roles: string[];
+    company?: string | null;
+  };
+}
 /** ✅ Create a Project */
-export const createProject = async (req: Request, res: Response): Promise<void> => {
+export const createProject = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, description, budget, deadline, teamMembers, status, milestones } = req.body;
 
@@ -26,7 +33,7 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Get All Projects with Filtering */
-export const getProjects = async (req: Request, res: Response): Promise<void> => {
+export const getProjects = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status, teamMember } = req.query;
 
@@ -45,7 +52,7 @@ export const getProjects = async (req: Request, res: Response): Promise<void> =>
 };
 
 /** ✅ Update a Project */
-export const updateProject = async (req: Request, res: Response): Promise<void> => {
+export const updateProject = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -69,7 +76,7 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
 };
 
 /** ✅ Delete a Project */
-export const deleteProject = async (req: Request, res: Response): Promise<void> => {
+export const deleteProject = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
