@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Role from "../models/role.model";
 import User from "../models/user.model";
 import Subscription from "../models/subscription.model";
@@ -113,10 +113,9 @@ export const assignRoleToUser = async (req: Request, res: Response, next: NextFu
       return;
     }
 
-    if (!user.roles.some((r) => r.toString() === roleId.toString())) {
-      user.roles.push(toObjectId(roleId));
-      await user.save();
-    }
+    // ✅ Since user has only ONE role, we update instead of pushing to an array
+    user.role = toObjectId(roleId);
+    await user.save();
 
     res.json({ message: "Role assigned successfully", user });
   } catch (error) {
@@ -124,15 +123,18 @@ export const assignRoleToUser = async (req: Request, res: Response, next: NextFu
   }
 };
 
+
+
+
 /**
  * 🚫 Remove Role from User (Admin Only)
  */
 export const removeRoleFromUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { userId, roleId } = req.body;
+    const { userId } = req.body;
 
-    if (!mongoose.isValidObjectId(userId) || !mongoose.isValidObjectId(roleId)) {
-      res.status(400).json({ message: "Invalid userId or roleId format" });
+    if (!mongoose.isValidObjectId(userId)) {
+      res.status(400).json({ message: "Invalid userId format" });
       return;
     }
 
@@ -142,70 +144,25 @@ export const removeRoleFromUser = async (req: Request, res: Response, next: Next
       return;
     }
 
-    user.roles = user.roles.filter((role) => role.toString() !== roleId);
+    // ✅ Fix: Ensure `defaultRole` is properly typed
+    const defaultRole = await Role.findOne({ name: "customer" }).lean();
+
+    if (!defaultRole || !defaultRole._id) {
+      res.status(500).json({ message: "Default role 'customer' not found" });
+      return;
+    }
+
+    // ✅ Fix: Ensure `_id` is explicitly cast as `Types.ObjectId`
+    user.role = new Types.ObjectId(defaultRole._id as any);
     await user.save();
 
-    res.json({ message: "Role removed successfully", user });
+    res.json({ message: "Role removed successfully, user assigned to default role", user });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * 🚀 Assign Permission to Role (Admin Only)
- */
-export const assignPermissionToRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { roleId, permission } = req.body;
 
-    if (!mongoose.isValidObjectId(roleId)) {
-      res.status(400).json({ message: "Invalid role ID format" });
-      return;
-    }
-
-    const role = await Role.findById(roleId);
-    if (!role) {
-      res.status(404).json({ message: "Role not found" });
-      return;
-    }
-
-    if (!role.permissions.includes(permission)) {
-      role.permissions.push(permission);
-      await role.save();
-    }
-
-    res.json({ message: "Permission assigned successfully", role });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * 🔄 Remove Permission from Role (Admin Only)
- */
-export const removePermissionFromRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { roleId, permission } = req.body;
-
-    if (!mongoose.isValidObjectId(roleId)) {
-      res.status(400).json({ message: "Invalid role ID format" });
-      return;
-    }
-
-    const role = await Role.findById(roleId);
-    if (!role) {
-      res.status(404).json({ message: "Role not found" });
-      return;
-    }
-
-    role.permissions = role.permissions.filter((p) => p !== permission);
-    await role.save();
-
-    res.json({ message: "Permission removed successfully", role });
-  } catch (error) {
-    next(error);
-  }
-};
 
 /**
  * ✅ Get All Users
@@ -244,14 +201,15 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+/**
+ * ✅ Get All Subscriptions
+ */
 export const getAllSubscriptions = async (req: Request, res: Response): Promise<void> => {
   try {
     const subscriptions = await Subscription.find().populate("user saasTool");
     res.json({ message: "All subscriptions retrieved", subscriptions });
-    return; // ✅ Fix: Explicitly return void
   } catch (error) {
     res.status(500).json({ message: "Error fetching subscriptions", error });
-    return; // ✅ Fix: Ensure function returns void
   }
 };
 
@@ -265,20 +223,20 @@ export const updateSubscriptionStatus = async (req: Request, res: Response): Pro
 
     if (!["active", "canceled", "expired"].includes(status)) {
       res.status(400).json({ message: "Invalid status" });
-      return; // ✅ Fix: Ensure function returns void
+      return;
     }
 
     const updatedSubscription = await Subscription.findByIdAndUpdate(subscriptionId, { status }, { new: true });
 
     if (!updatedSubscription) {
       res.status(404).json({ message: "Subscription not found" });
-      return; // ✅ Fix: Ensure function returns void
+      return;
     }
 
     res.json({ message: `Subscription ${status} successfully`, updatedSubscription });
-    return; // ✅ Fix: Explicit return
   } catch (error) {
     res.status(500).json({ message: "Error updating subscription status", error });
-    return; // ✅ Fix: Ensure function returns void
   }
 };
+
+

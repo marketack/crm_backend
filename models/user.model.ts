@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema, Model, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 
-// ✅ Sub-Schema Interfaces
+/** ✅ Define Transaction Interface */
 interface ITransaction {
   type: "deposit" | "withdrawal" | "course_purchase";
   amount: number;
@@ -9,6 +9,7 @@ interface ITransaction {
   status: "pending" | "completed" | "failed";
 }
 
+/** ✅ Define Notification Interface */
 interface INotification {
   message: string;
   type: "info" | "warning" | "success" | "error";
@@ -16,12 +17,21 @@ interface INotification {
   createdAt: Date;
 }
 
+/** ✅ Define Message Interface */
 interface IMessage {
-  sender: mongoose.Schema.Types.ObjectId;
+  sender: Types.ObjectId;
   content: string;
   date: Date;
 }
 
+/** ✅ Define Performance Review Interface */
+interface IPerformanceReview {
+  date: Date;
+  review: string;
+  rating: number;
+}
+
+/** ✅ Define Login History Interface */
 interface ILoginHistory {
   ip: string;
   device: string;
@@ -29,31 +39,21 @@ interface ILoginHistory {
   date: Date;
 }
 
-interface IActivity {
-  type: "login" | "update_profile" | "new_connection";
-  date: Date;
-  details: string;
-}
-
-// ✅ Define User Interface
+/** ✅ Define User Interface */
 export interface IUser extends Document {
   name: string;
-  position?: string; // ✅ Added position
   email: string;
   emailVerified: boolean;
   phone: string;
   phoneVerified: boolean;
   password: string;
-  roles: Types.ObjectId[];
-  company?: mongoose.Schema.Types.ObjectId | null;
+  role: Types.ObjectId | { _id: Types.ObjectId; name: string }; // ✅ Allows ObjectId or Populated Role
+  company?: Types.ObjectId | null;
+  department?: Types.ObjectId | null;
+  reportsTo?: Types.ObjectId | null;
+  position?: string;
   profileImage?: string;
   status: "active" | "inactive" | "suspended" | "banned";
-  enrolledCourses: mongoose.Schema.Types.ObjectId[];
-  walletBalance: number;
-  transactions: ITransaction[];
-  notifications: INotification[];
-  messages: IMessage[];
-  loginHistory: ILoginHistory[];
   lastLogin?: Date;
   failedLoginAttempts: number;
   twoFactorEnabled: boolean;
@@ -64,27 +64,49 @@ export interface IUser extends Document {
   agreedToTerms: boolean;
   timezone?: string;
   preferredLanguage?: string;
+  transactions: ITransaction[];
+  notifications: INotification[];
+  messages: IMessage[];
+  loginHistory: ILoginHistory[];
+  enrolledCourses: Types.ObjectId[]; // ✅ Stores courses the user is enrolled in
   comparePassword(enteredPassword: string): Promise<boolean>;
+  salary?: number;
+  performanceReviews?: IPerformanceReview[];
 }
 
-// ✅ Define User Schema
+/** ✅ Define User Schema */
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
-    position: { type: String, default: "Member" }, // ✅ Added position
     email: { type: String, required: true, unique: true, index: true },
     emailVerified: { type: Boolean, default: false },
     phone: { type: String, required: true, unique: true, index: true },
     phoneVerified: { type: Boolean, default: false },
     password: { type: String, required: true },
+    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Course", default: [] }],
 
-    company: { type: Schema.Types.ObjectId, ref: "Company", default: null, index: true },
-    roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
+    // ✅ Reference Role Model Instead of Embedding Role Data
+    role: { type: Schema.Types.ObjectId, ref: "Role", default: null },
+
+    // ✅ Employee & Organization Data
+    company: { type: Schema.Types.ObjectId, ref: "Company", default: null }, // ✅ Ensure company reference exists
+    department: { type: Schema.Types.ObjectId, ref: "Department", default: null }, // ✅ Reference to Department
+    reportsTo: { type: Schema.Types.ObjectId, ref: "User", default: null }, // ✅ Reference to another User
+    position: { type: String, default: "" },
+    salary: { type: Number, default: 0 },
+    performanceReviews: [
+      {
+        date: { type: Date, default: Date.now },
+        review: { type: String, required: true },
+        rating: { type: Number, min: 1, max: 5, required: true },
+      },
+    ],
+
+    // ✅ General User Fields
     profileImage: { type: String, default: "default.png" },
     status: { type: String, enum: ["active", "inactive", "suspended", "banned"], default: "active" },
-
-    enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
-    walletBalance: { type: Number, default: 0, min: 0 },
+    lastLogin: { type: Date },
+    failedLoginAttempts: { type: Number, default: 0 },
 
     transactions: [
       {
@@ -121,9 +143,6 @@ const UserSchema = new Schema<IUser>(
       },
     ],
 
-    lastLogin: { type: Date },
-    failedLoginAttempts: { type: Number, default: 0 },
-
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String },
 
@@ -138,22 +157,17 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// ✅ Virtual Field: Full Name
-UserSchema.virtual("fullName").get(function (this: IUser) {
-  return this.name;
-});
-
 // 🔐 **Hash password before saving**
 UserSchema.pre<IUser>("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 12);
+  if (!this.isModified("password")) return next(); // ✅ Skip if password is unchanged
+
+  const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || "12", 10);
+  this.password = await bcrypt.hash(this.password, saltRounds);
   next();
 });
 
-// 🔄 **Compare Passwords**
-UserSchema.methods.comparePassword = async function (
-  enteredPassword: string
-): Promise<boolean> {
+// ✅ Compare Passwords Correctly
+UserSchema.methods.comparePassword = async function (enteredPassword: string): Promise<boolean> {
   return bcrypt.compare(enteredPassword, this.password);
 };
 

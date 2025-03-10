@@ -30,26 +30,32 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
     console.log(`📡 Fetching profile for User ID: ${userId}`);
 
     // Fetch user details with necessary population
-    const user = await User.findById(toObjectId(userId))
-      .populate("roles", "name")
+    const user = await User.findById(userId)
+      .populate<{ role: { _id: Types.ObjectId; name: string } | null }>("role", "name") // ✅ Ensure `role` is populated
       .populate("company", "name industry location")
       .populate("transactions")
       .populate("notifications")
       .populate("messages.sender", "name email")
       .populate("loginHistory")
-      .populate("subscriptionPlan")
-      .lean();
+      .populate("subscriptionPlan");
 
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
     }
 
+    // ✅ Ensure `roles` is always an array and formatted correctly
+    const userRoles = user.role
+      ? Array.isArray(user.role)
+        ? user.role.map((r) => r.name)
+        : [user.role.name]
+      : ["customer"];
+
     // Exclude sensitive fields
-    const { password, twoFactorSecret, ...safeUserData } = user;
+    const { password, twoFactorSecret, ...safeUserData } = user.toObject(); // ✅ Convert Mongoose Document to Plain Object
 
     console.log("✅ Successfully retrieved user profile.");
-    res.json(safeUserData);
+    res.json({ ...safeUserData, roles: userRoles }); // ✅ Always return `roles`
   } catch (error) {
     console.error("❌ Error fetching user profile:", error);
     res.status(500).json({ message: "Internal server error" });

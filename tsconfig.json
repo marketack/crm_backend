@@ -3,6 +3,8 @@
     "outDir": "./dist",
     "rootDir": "./",
     "moduleResolution": "node",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "target": "ES2015",  // ✅ Required for Set iteration
+    "downlevelIteration": true  // ✅ Allows iteration over Set<any>
   }
 }

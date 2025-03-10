@@ -1,13 +1,18 @@
-
 import { Router } from "express";
-import { createEmployee, getEmployees, updateEmployee, deleteEmployee } from "../controllers/employee.controller";
+import {
+  assignEmployeeRole,
+  getCompanyEmployees,
+  updateEmployeeRole,
+  removeEmployeeRole,
+} from "../controllers/employee.controller";
 import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.post("/", verifyJWT, requireRole(["admin", "manager"]), createEmployee);
-router.get("/", verifyJWT, requireRole(["admin", "manager"]), getEmployees);
-router.patch("/:id", verifyJWT, requireRole(["admin", "manager"]), updateEmployee);
-router.delete("/:id", verifyJWT, requireRole(["admin"]), deleteEmployee);
+// ✅ Employee Management
+router.post("/assign", verifyJWT, requireRole(["admin", "customer","owner"]), assignEmployeeRole);
+router.get("/", verifyJWT, requireRole(["admin", "customer","owner"]), getCompanyEmployees);
+router.patch("/:userId/role", verifyJWT, requireRole(["admin", "customer","owner"]), updateEmployeeRole);
+router.delete("/:userId/role", verifyJWT, requireRole(["admin", "customer","owner"]), removeEmployeeRole);
 
 export default router;

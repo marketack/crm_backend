@@ -71,8 +71,8 @@ export const updateAboutUs = async (req: Request, res: Response, next: NextFunct
  */
 export const getTeam = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const company = await Company.findOne().populate("team", "name position email image");
-    res.status(200).json({ success: true, team: company?.team });
+    const company = await Company.findOne().populate("employees", "name position email image");
+    res.status(200).json({ success: true, employees: company?.employees });
   } catch (error) {
     next(error);
   }
@@ -85,7 +85,7 @@ export const updateTeam = async (req: Request, res: Response, next: NextFunction
   try {
     const { team } = req.body; // Array of team members [{name, position, image}]
     const company = await Company.findOneAndUpdate({}, { team }, { new: true });
-    res.status(200).json({ success: true, message: "Updated successfully", team: company?.team });
+    res.status(200).json({ success: true, message: "Updated successfully", team: company?.employees });
   } catch (error) {
     next(error);
   }

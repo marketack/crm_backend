@@ -1,126 +1,172 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose, { Types } from "mongoose";
+import asyncHandler from "express-async-handler"; // ✅ Error handling wrapper
 import Company from "../models/company.model";
-import User from "../models/user.model";
+import User from "../models/user.model"; // ✅ Import User model
+import Role from "../models/role.model"; // ✅ Import User model
 
-/**
- * ✅ Convert ID to ObjectId safely
- */
+// ✅ Convert String to ObjectId safely
 const toObjectId = (id: any): Types.ObjectId | null => {
-  if (typeof id === "string" && mongoose.Types.ObjectId.isValid(id)) {
-    return new mongoose.Types.ObjectId(id);
-  }
-  return null;
+  return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
 };
 
 /**
- * ✅ Add Team Member to Company
+ * ✅ Default Departments Template
  */
-export const addTeamMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { companyId, userId } = req.body;
-
-    // ✅ Convert String IDs to ObjectId
-    const companyObjectId = toObjectId(companyId);
-    const userObjectId = toObjectId(userId);
-
-    if (!companyObjectId || !userObjectId) {
-      res.status(400).json({ success: false, message: "Invalid company or user ID" });
-      return;
-    }
-
-    const company = await Company.findById(companyObjectId);
-    const user = await User.findById(userObjectId);
-
-    if (!company || !user) {
-      res.status(404).json({ success: false, message: "Company or User not found" });
-      return;
-    }
-
-    // ✅ Ensure the user is not already in the team
-    if (!company.team.some((memberId) => memberId.equals(userObjectId))) {
-      company.team.push(userObjectId);
-      await company.save();
-      await User.findByIdAndUpdate(userObjectId, { company: companyObjectId });
-    }
-
-    res.status(200).json({ success: true, message: "User added to company team", company });
-  } catch (error) {
-    next(error);
-  }
-};
-
-
+const DEFAULT_DEPARTMENTS = [
+  { name: "Human Resources", budget: 50000, objectives: ["Employee Management", "Recruitment"] },
+  { name: "Finance", budget: 100000, objectives: ["Budget Planning", "Financial Reporting"] },
+  { name: "Marketing", budget: 80000, objectives: ["Brand Awareness", "Lead Generation"] },
+  { name: "Sales", budget: 120000, objectives: ["Increase Revenue", "Client Acquisition"] },
+  { name: "IT", budget: 150000, objectives: ["System Security", "Infrastructure Maintenance"] },
+];
 
 /**
- * ✅ Create Company Profile
+ * ✅ Create a Company with Default Departments
  */
-export const createCompany = async (req: Request, res: Response, next: NextFunction) => {
+export const createCompanyWithDepartments = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, phone, industry, website, address, aboutUs } = req.body;
-    const userId = req.user?.userId;
+    console.log("📡 Incoming Create Company Request:", req.body);
 
-    if (!userId) {
-      res.status(400).json({ success: false, message: "User ID is required" });
+    const { name, email, phone, industry, website, address, aboutUs, createdBy, departments, contactUs } = req.body;
+
+    // ✅ Validate required fields
+    if (!name || !email || !phone || !industry || !contactUs || !contactUs.phone || !contactUs.email) {
+      console.log("❌ Missing required fields");
+      res.status(400).json({ success: false, message: "Company name, email, phone, industry, and contact details are required" });
       return;
     }
 
-    if (!name || !email || !phone || !industry) {
-      res.status(400).json({
-        success: false,
-        message: "Missing required fields: name, email, phone, and industry are required",
-      });
+    // ✅ Convert `createdBy` to ObjectId safely
+    const createdByObjectId = toObjectId(createdBy);
+    if (!createdByObjectId) {
+      console.log("❌ Invalid CreatedBy User ID");
+      res.status(400).json({ success: false, message: "Invalid CreatedBy User ID" });
       return;
     }
 
-    const existingCompany = await Company.findOne({ email });
-    if (existingCompany) {
-      res.status(400).json({ success: false, message: "Company already exists with this email" });
+    // ✅ Fetch user and ensure they exist
+    const user = await User.findById(createdByObjectId).populate("role", "name").lean();
+    if (!user) {
+      console.log("❌ User not found");
+      res.status(404).json({ success: false, message: "User not found" });
       return;
     }
 
-    // ✅ Ensure `aboutUs` is set
-    const company = new Company({
+    // ✅ Ensure proper role assignment
+    const userRole = user.role && typeof user.role === "object" && "name" in user.role ? user.role.name.toLowerCase() : "";
+
+    if (userRole !== "owner") {
+      const ownerRole = await Role.findOne({ name: "owner" }).select("_id").lean();
+      if (!ownerRole) {
+        console.error("❌ Role 'owner' does not exist in the database.");
+        res.status(500).json({ success: false, message: "Owner role not found." });
+        return;
+      }
+
+      // ✅ Update user role
+      await User.findByIdAndUpdate(createdByObjectId, { role: ownerRole._id });
+    }
+
+    // ✅ Process departments or use default ones
+    const assignedDepartments = departments?.length
+      ? departments.map((dept: any) => ({
+          name: dept.name,
+          employees: dept.employees ? dept.employees.map(toObjectId).filter(Boolean) : [],
+          budget: dept.budget || 0,
+          objectives: dept.objectives || [],
+        }))
+      : DEFAULT_DEPARTMENTS.map((dept) => ({
+          name: dept.name,
+          employees: [],
+          budget: dept.budget,
+          objectives: dept.objectives,
+        }));
+
+    // ✅ Create Company with Proper Employee ObjectIds
+    const company = await new Company({
       name,
       email,
       phone,
       industry,
       website,
       address,
-      aboutUs: aboutUs || "No description available.",
-      createdBy: toObjectId(userId),
-      updatedBy: toObjectId(userId),
-      contactUs: {
-        email,
-        phone,
-      },
+      aboutUs,
+      createdBy: createdByObjectId,
+      updatedBy: createdByObjectId,
+      employees: [createdByObjectId], // ✅ Only store ObjectId, not an object
+      departments: assignedDepartments,
+      contactUs: { phone: contactUs.phone, email: contactUs.email },
+    }).save();
+
+    if (!company || !company._id) {
+      console.error("❌ Failed to create company.");
+      res.status(500).json({ success: false, message: "Error creating company." });
+      return;
+    }
+
+    // ✅ Assign company to user
+    await User.findByIdAndUpdate(createdByObjectId, {
+      company: company._id,
+      department: null,
+      position: "CEO",
     });
 
-    await company.save();
-    await User.findByIdAndUpdate(userId, { company: company._id });
-
+    console.log("✅ Company created successfully:", company);
     res.status(201).json({ success: true, message: "Company created successfully", company });
-  } catch (error) {
-    next(error);
-  }
-};
 
-/**
- * ✅ Get All Companies
- */
-export const getAllCompanies = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const companies = await Company.find();
-    res.status(200).json({ success: true, companies });
   } catch (error) {
-    next(error);
+    console.error("❌ Error creating company:", error);
+    res.status(500).json({ success: false, message: "Internal server error", error });
   }
-};
+});
+
+
+export const getAllCompanies = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("📡 Fetching companies for user:", req.user?.userId);
+
+    // ✅ Ensure user is authenticated
+    if (!req.user) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    // ✅ If the user is an admin, return all companies
+    if (req.user.roles.includes("admin")) {
+      console.log("✅ Admin access: Returning all companies");
+      const companies = await Company.find().lean();
+      res.status(200).json({ success: true, companies });
+      return;
+    }
+
+    // ✅ Ensure user has a company
+    if (!req.user.company) {
+      res.status(403).json({ success: false, message: "You do not belong to a company." });
+      return;
+    }
+
+    // ✅ Fetch only the user's company
+    const company = await Company.findById(req.user.company).lean();
+
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found." });
+      return;
+    }
+
+    console.log("✅ Returning user's company:", company.name);
+    res.status(200).json({ success: true, company });
+  } catch (error) {
+    console.error("❌ Error fetching company:", error);
+    res.status(500).json({ success: false, message: "Error fetching company", error });
+  }
+});
+
 
 /**
  * ✅ Update Company Details
  */
-export const updateCompany = async (req: Request, res: Response, next: NextFunction) => {
+export const updateCompany = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { companyId } = req.params;
     const updates = req.body;
@@ -139,14 +185,12 @@ export const updateCompany = async (req: Request, res: Response, next: NextFunct
 
     res.status(200).json({ success: true, message: "Company updated successfully", company });
   } catch (error) {
-    next(error);
+    res.status(500).json({ success: false, message: "Error updating company", error });
   }
-};
+});
 
-/**
- * ❌ Delete Company (Soft Delete)
- */
-export const deleteCompany = async (req: Request, res: Response, next: NextFunction) => {
+/** ✅ Delete a Company */
+export const deleteCompany = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { companyId } = req.params;
 
@@ -155,15 +199,123 @@ export const deleteCompany = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
-    const company = await Company.findByIdAndUpdate(toObjectId(companyId), { isDeleted: true }, { new: true });
+    await Company.findByIdAndDelete(toObjectId(companyId));
 
+    res.status(200).json({ success: true, message: "Company deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error deleting company", error });
+  }
+});
+
+/** ✅ Add a New Department to a Company */
+/**
+ * ✅ Add a New Department to a Company (Fixing Missing Fields)
+ */
+export const addDepartmentToCompany = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { companyId } = req.params;
+    const { name, employees, budget, objectives } = req.body;
+
+    if (!name) {
+      res.status(400).json({ success: false, message: "Department name is required" });
+      return;
+    }
+
+    const companyObjectId = toObjectId(companyId);
+    if (!companyObjectId) {
+      res.status(400).json({ success: false, message: "Invalid company ID" });
+      return;
+    }
+
+    const company = await Company.findById(companyObjectId);
     if (!company) {
       res.status(404).json({ success: false, message: "Company not found" });
       return;
     }
 
-    res.status(200).json({ success: true, message: "Company deleted (soft delete)", company });
+    const newDepartment = {
+      _id: new Types.ObjectId(),
+      name,
+      employees: employees ? employees.map(toObjectId).filter(Boolean) : [],
+      budget: budget || 0, // ✅ Ensure budget exists
+      objectives: objectives || [], // ✅ Ensure objectives exist
+    };
+
+    company.departments.push(newDepartment);
+    await company.save();
+
+    res.status(201).json({ success: true, message: "Department added successfully", department: newDepartment });
   } catch (error) {
-    next(error);
+    res.status(500).json({ success: false, message: "Error adding department", error });
   }
-};
+});
+/**
+ * ✅ Get All Departments for a Company
+ */
+export const getCompanyDepartments = asyncHandler(async (req: Request, res: Response) => {
+  const { companyId } = req.params;
+  const companyObjectId = toObjectId(companyId);
+
+  if (!companyObjectId) {
+    res.status(400).json({ success: false, message: "Invalid company ID" });
+    return;
+  }
+
+  const company = await Company.findById(companyObjectId, "departments");
+
+  if (!company) {
+    res.status(404).json({ success: false, message: "Company not found" });
+    return;
+  }
+
+  res.status(200).json({ success: true, departments: company.departments });
+});
+
+
+/** ✅ Delete a Department */
+export const deleteDepartment = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { companyId, departmentId } = req.params;
+
+    const company = await Company.findById(companyId);
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+
+    company.departments = company.departments.filter((dept) => dept._id?.toString() !== departmentId);
+    await company.save();
+
+    res.status(200).json({ success: true, message: "Department deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error deleting department", error });
+  }
+});
+
+export const updateDepartment = asyncHandler(async (req: Request, res: Response) => {
+  const { companyId, departmentId } = req.params;
+  const updates = req.body;
+
+  const companyObjectId = toObjectId(companyId);
+  if (!companyObjectId) {
+    res.status(400).json({ success: false, message: "Invalid company ID" });
+    return;
+  }
+
+  const company = await Company.findById(companyObjectId);
+  if (!company) {
+    res.status(404).json({ success: false, message: "Company not found" });
+    return;
+  }
+
+  const department = company.departments.find((dept) => dept._id?.toString() === departmentId);
+  if (!department) {
+    res.status(404).json({ success: false, message: "Department not found" });
+    return;
+  }
+
+  Object.assign(department, updates);
+  await company.save();
+
+  res.status(200).json({ success: true, message: "Department updated successfully", department });
+});

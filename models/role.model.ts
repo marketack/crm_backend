@@ -1,14 +1,22 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Document, Schema, Model, Types } from "mongoose";
 
+/** ✅ Define Role Interface */
 export interface IRole extends Document {
-  name: string;
-  permissions: string[];
+  name: string; // e.g., "admin", "manager", "employee"
+  permissions: string[]; // e.g., ["manage_users", "edit_content"]
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const RoleSchema = new Schema<IRole>({
-  name: { type: String, unique: true, required: true },
-  permissions: [{ type: String, required: true }],
-}, { timestamps: true });
+/** ✅ Define Role Schema */
+const RoleSchema = new Schema<IRole>(
+  {
+    name: { type: String, required: true, unique: true, trim: true },
+    permissions: [{ type: String, required: true }],
+  },
+  { timestamps: true }
+);
 
-const Role = mongoose.model<IRole>("Role", RoleSchema);
+/** ✅ Register & Export Role Model */
+const Role: Model<IRole> = mongoose.model<IRole>("Role", RoleSchema);
 export default Role;

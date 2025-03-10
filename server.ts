@@ -22,7 +22,7 @@ import compnayRoutes from "./routes/company.routes";
 import protectedRoutes from "./routes/protected.routes";
 
 import dashboardRoutes from "./routes/dashboard.routes";
-import departmentRoutes from "./routes/department.routes";
+
 import employeeRoutes from "./routes/employee.routes";
 import leadRoutes from "./routes/lead.routes";
 import dealRoutes from "./routes/deal.routes";
@@ -31,6 +31,7 @@ import projectRoutes from "./routes/project.routes";
 import invoiceRoutes from "./routes/invoice.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import fileRoutes from "./routes/file.routes";
+import roleRoutes from "./routes/role.routes";
 
 import commentRoutes from "./routes/comment.routes";
 
@@ -152,9 +153,10 @@ app.use("/api/saas", saasRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api/company", compnayRoutes);
+app.use("/api/roles", roleRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/departments", departmentRoutes);
+
 app.use("/api/employees", employeeRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/deals", dealRoutes);

@@ -1,15 +1,20 @@
 import { Request, Response } from "express";
-import { Comment, IComment } from "../models/comment.model"; // ✅ Fix: Import IComment
+import { Comment } from "../models/comment.model";
 
 /** ✅ Create a Comment */
 export const createComment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { relatedTo, type, message } = req.body;
+    const { relatedTo, message } = req.body;
+    const userId = req.user?.userId; // ✅ FIXED: Use `userId` instead of `id`
+
+    if (!relatedTo || !message) {
+      res.status(400).json({ message: "Missing required fields." });
+      return;
+    }
 
     const comment = new Comment({
-      user: req.user?.userId, // Get user from JWT
+      user: userId,
       relatedTo,
-      type, // "task" | "project" | "deal" | "file"
       message,
     });
 
@@ -20,56 +25,65 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-/** ✅ Get Comments by Related Resource */
+/** ✅ Get Comments */
 export const getComments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { relatedTo } = req.params;
+    const relatedTo = req.query.relatedTo || req.params.relatedTo;
+
+    if (!relatedTo) {
+      res.status(400).json({ message: "Missing 'relatedTo' parameter." });
+      return;
+    }
 
     const comments = await Comment.find({ relatedTo }).populate("user", "name email");
+
     res.json(comments);
   } catch (error) {
     res.status(500).json({ message: "Error fetching comments", error });
   }
 };
 
-/** ✅ Update a Comment (Only Comment Owner) */
+/** ✅ Update a Comment */
 export const updateComment = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const comment = await Comment.findById(req.params.id);
-      if (!comment) {
-        res.status(404).json({ message: "Comment not found" });
-        return;
-      }
-  
-      // Ensure the user owns the comment
-      if (comment.user.toString() !== req.user?.userId) {
-        res.status(403).json({ message: "Unauthorized: You can only edit your own comments" });
-        return;
-      }
-  
-      // ✅ Fix: Use Type Assertion to IComment
-      (comment as IComment).message = req.body.message;
-      await comment.save();
-  
-      res.json(comment);
-    } catch (error) {
-      res.status(500).json({ message: "Error updating comment", error });
-    }
-  };
-  
-
-/** ✅ Delete a Comment (Admin or Comment Owner) */
-export const deleteComment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const comment = await Comment.findById(req.params.id);
+    const { message } = req.body;
+    const { id } = req.params;
+    const userId = req.user?.userId; // ✅ FIXED: Use `userId`
+
+    const comment = await Comment.findById(id);
     if (!comment) {
       res.status(404).json({ message: "Comment not found" });
       return;
     }
 
-    // Only allow the comment owner or an admin to delete
-    if (comment.user.toString() !== req.user?.userId && !req.user?.roles.includes("admin")) {
-      res.status(403).json({ message: "Unauthorized: You can only delete your own comments" });
+    if (comment.user.toString() !== userId) {
+      res.status(403).json({ message: "Unauthorized to edit this comment" });
+      return;
+    }
+
+    comment.message = message;
+    await comment.save();
+
+    res.json({ message: "Comment updated successfully", comment });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating comment", error });
+  }
+};
+
+/** ✅ Delete a Comment */
+export const deleteComment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId; // ✅ FIXED: Use `userId`
+
+    const comment = await Comment.findById(id);
+    if (!comment) {
+      res.status(404).json({ message: "Comment not found" });
+      return;
+    }
+
+    if (comment.user.toString() !== userId) {
+      res.status(403).json({ message: "Unauthorized to delete this comment" });
       return;
     }
 

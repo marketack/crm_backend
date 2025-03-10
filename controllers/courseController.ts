@@ -10,24 +10,71 @@ import Notification from "../models/notification.model";
 export const getCourses = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;
-    const user = userId ? await User.findById(userId).populate("roles", "name") : null;
+
+    // ✅ Fix: Populate `role` before accessing `role.name`
+    const user = userId ? await User.findById(userId).populate("role", "name") : null;
 
     let query: any = { status: "approved" };
-    if (user && user.roles.some((role: any) => role.name === "admin")) {
+
+    if (user && user.role && typeof user.role === "object" && "name" in user.role && user.role.name === "admin") {
       query = { status: { $in: ["approved", "pending", "rejected"] } };
     }
 
     const courses = await Course.find(query).populate("createdBy", "name email");
 
-    // ✅ Fix: Ensure returning `void`
     res.status(200).json({ message: "Courses retrieved successfully", courses });
-    return;
   } catch (error) {
     console.error("Error retrieving courses:", error);
     res.status(500).json({ message: "Server error", error });
-    return;
   }
 };
+
+/**
+ * ✅ Update Course (Admins & Course Creator Only)
+ */
+export const updateCourse = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { courseId } = req.params;
+    const { title, description, price } = req.body;
+    const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;
+
+    if (!Types.ObjectId.isValid(courseId)) {
+      res.status(400).json({ message: "Invalid course ID" });
+      return;
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      res.status(404).json({ message: "Course not found" });
+      return;
+    }
+
+    // ✅ Fix: Populate `role` before checking `role.name`
+    const user = await User.findById(userId).populate("role", "name");
+
+    if (
+      !user ||
+      (course.createdBy.toString() !== userId.toString() &&
+        typeof user.role === "object" &&
+        "name" in user.role &&
+        user.role.name !== "admin")
+    ) {
+      res.status(403).json({ message: "Unauthorized to update this course" });
+      return;
+    }
+
+    course.title = title || course.title;
+    course.description = description || course.description;
+    course.price = price !== undefined ? price : course.price;
+
+    await course.save();
+    res.status(200).json({ message: "Course updated successfully", course });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
 
 /**
  * 🆕 Create a Course (User or Admin)
@@ -239,43 +286,6 @@ export const checkEnrollment = async (req: Request, res: Response) => {
   }
 };
 
-
-/**
- * ✏️ Update Course (Admins & Course Creator Only)
- */
-export const updateCourse = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { courseId } = req.params;
-    const { title, description, price } = req.body;
-    const userId = req.user?.userId ? new Types.ObjectId(req.user.userId) : null;
-
-    if (!Types.ObjectId.isValid(courseId)) {
-      res.status(400).json({ message: "Invalid course ID" });
-      return;
-    }
-
-    const course = await Course.findById(courseId);
-    if (!course) {
-      res.status(404).json({ message: "Course not found" });
-      return;
-    }
-
-    if (!userId || (course.createdBy.toString() !== userId.toString() && !req.user?.roles.includes("admin"))) {
-      res.status(403).json({ message: "Unauthorized to update this course" });
-      return;
-    }
-
-    course.title = title || course.title;
-    course.description = description || course.description;
-    course.price = price !== undefined ? price : course.price;
-
-    await course.save();
-    res.status(200).json({ message: "Course updated successfully", course });
-  } catch (error) {
-    console.error("Error updating course:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-};
 
 
 /**

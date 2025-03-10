@@ -4,9 +4,10 @@ import { verifyJWT } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.post("/", verifyJWT, createComment); // Users can add comments
-router.get("/:relatedTo", verifyJWT, getComments); // Fetch comments for a related resource (Task, Deal, etc.)
-router.patch("/:id", verifyJWT, updateComment); // Edit a comment
-router.delete("/:id", verifyJWT, deleteComment); // Delete comment (Admins or comment owners)
+router.post("/", verifyJWT, createComment); // ✅ Users can add comments
+router.get("/", verifyJWT, getComments); // ✅ Fetch comments via query param
+router.get("/:relatedTo", verifyJWT, getComments); // ✅ Fetch comments via URL param
+router.patch("/:id", verifyJWT, updateComment); // ✅ Edit a comment
+router.delete("/:id", verifyJWT, deleteComment); // ✅ Delete a comment
 
 export default router;
