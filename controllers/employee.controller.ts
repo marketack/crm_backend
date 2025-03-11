@@ -10,19 +10,20 @@ const handleError = (res: Response, error: any, message: string) => {
   res.status(500).json({ message, error: error.message });
 };
 
-/** ✅ Assign Employee to Company (Auto Role: "staff") */
+/** ✅ Assign Employee to Company (Find by Email) */
 export const assignEmployeeRole = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, position, department, salary } = req.body;
+    const { email, position, department, salary, company } = req.body;
 
     // ✅ Validate required fields
-    if (!userId || !position || !department || !salary) {
+    if (!email || !position || !department || !salary || !company) {
       res.status(400).json({ message: "All fields are required" });
       return;
     }
 
-    // ✅ Fetch the employee user
-    const employeeUser = await User.findById(userId);
+    // ✅ Fetch the employee user by email
+    const employeeUser = await User.findOne({ email });
+
     if (!employeeUser) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -44,14 +45,14 @@ export const assignEmployeeRole = async (req: Request, res: Response): Promise<v
     employeeUser.position = position;
     employeeUser.department = new mongoose.Types.ObjectId(department);
     employeeUser.salary = salary;
-    employeeUser.company = (req as any).user?.company;
+    employeeUser.company = new mongoose.Types.ObjectId(company);
     employeeUser.role = new mongoose.Types.ObjectId(staffRole._id.toString()); // ✅ Assign "staff" role
 
     await employeeUser.save();
 
     // ✅ Add employee to company's employee list
     await Company.findByIdAndUpdate(
-      employeeUser.company,
+      company,
       { $push: { employees: employeeUser._id } },
       { new: true }
     );
@@ -61,6 +62,8 @@ export const assignEmployeeRole = async (req: Request, res: Response): Promise<v
     handleError(res, error, "Error adding employee to company");
   }
 };
+
+
 
 /** ✅ Remove Employee Role */
 export const removeEmployeeRole = async (req: Request, res: Response): Promise<void> => {
