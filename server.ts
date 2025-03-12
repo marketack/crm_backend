@@ -22,6 +22,7 @@ import compnayRoutes from "./routes/company.routes";
 import protectedRoutes from "./routes/protected.routes";
 
 import dashboardRoutes from "./routes/dashboard.routes";
+import activityLogRoutes from "./routes/activityLog.routes";
 
 import employeeRoutes from "./routes/employee.routes";
 import leadRoutes from "./routes/lead.routes";
@@ -50,6 +51,7 @@ dotenv.config();
 
 // Express App
 const app = express();
+app.use("/uploads", express.static("uploads"));
 
 // Security: Rate limiting (100 requests per 15 minutes)
 const apiLimiter = rateLimit({
@@ -150,10 +152,11 @@ app.use("/api/cms", cmsRoutes);
 app.use("/api/course", courseRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/saas", saasRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/protected", protectedRoutes);
 app.use("/api/company", compnayRoutes);
 app.use("/api/roles", roleRoutes);
+app.use("/api/activity-logs", activityLogRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
 

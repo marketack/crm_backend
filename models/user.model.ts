@@ -72,6 +72,8 @@ export interface IUser extends Document {
   comparePassword(enteredPassword: string): Promise<boolean>;
   salary?: number;
   performanceReviews?: IPerformanceReview[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /** ✅ Define User Schema */
@@ -91,7 +93,7 @@ const UserSchema = new Schema<IUser>(
     // ✅ Employee & Organization Data
     company: { type: Schema.Types.ObjectId, ref: "Company", default: null }, // ✅ Ensure company reference exists
     department: { type: Schema.Types.ObjectId, ref: "Department", default: null }, // ✅ Reference to Department
-    reportsTo: { type: Schema.Types.ObjectId, ref: "User", default: null }, // ✅ Reference to another User
+    reportsTo: { type: Schema.Types.ObjectId, ref: "User", default: null }, // ✅ FIX: Ensure `reportsTo` is properly referenced
     position: { type: String, default: "" },
     salary: { type: Number, default: 0 },
     performanceReviews: [
@@ -103,7 +105,7 @@ const UserSchema = new Schema<IUser>(
     ],
 
     // ✅ General User Fields
-    profileImage: { type: String, default: "default.png" },
+    profileImage: { type: String, default: "/uploads/default.png" }, // ✅ Default profile image
     status: { type: String, enum: ["active", "inactive", "suspended", "banned"], default: "active" },
     lastLogin: { type: Date },
     failedLoginAttempts: { type: Number, default: 0 },
@@ -153,6 +155,8 @@ const UserSchema = new Schema<IUser>(
     agreedToTerms: { type: Boolean, default: false },
     timezone: { type: String, default: "UTC" },
     preferredLanguage: { type: String, default: "en" },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

@@ -4,6 +4,8 @@ import User from "../models/user.model";
 import Blog from "../models/blog.model";
 import sendEmail from "../utils/emailService";
 import slugify from "slugify"; // ✅ Slug Generation
+
+
 interface AuthRequest extends Request {
   user?: {
     userId: string;
@@ -76,14 +78,21 @@ export const updateAboutUs = async (req: Request, res: Response, next: NextFunct
 /**
  * ✅ Get Team Members
  */
-export const getTeam = async (req: Request, res: Response, next: NextFunction) => {
+export const getTeam = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const company = await Company.findOne().populate("employees", "name position email image");
-    res.status(200).json({ success: true, employees: company?.employees });
+    const company = await Company.findOne().populate("employees", "name position email profileImage");
+
+    if (!company || !company.employees) {
+      res.status(404).json({ success: false, message: "No team members found." });
+      return;
+    }
+
+    res.status(200).json({ success: true, employees: company.employees });
   } catch (error) {
     next(error);
   }
 };
+
 
 /**
  * ✅ Update Team Members

@@ -4,7 +4,7 @@ import User from "../models/user.model";
 import Notification from "../models/notification.model";
 import { sendNotification } from "../utils/websocket";
 import ApiKey from "../models/apiKey.model";
-import ActivityLog from "../models/activityLog.model";
+import {ActivityLog} from "../models/activityLog.model";
 import crypto from "crypto";
 import Subscription from "../models/subscription.model";
 
@@ -67,6 +67,39 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<v
   } catch (error) {
     console.error("❌ Error fetching user profile:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const uploadProfileImage = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    let imageUrl = "/uploads/default.png"; // ✅ Default image
+
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`; // ✅ Use uploaded image
+    }
+
+    // ✅ Update user's profile with new image
+    const updatedUser = await User.findByIdAndUpdate(userId, { profileImage: imageUrl }, { new: true });
+
+    if (!updatedUser) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image uploaded successfully",
+      profileImage: updatedUser.profileImage,
+    });
+  } catch (error) {
+    console.error("❌ Error uploading profile image:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 

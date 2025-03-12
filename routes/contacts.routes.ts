@@ -4,9 +4,9 @@ import { verifyJWT, requireRole } from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.post("/", verifyJWT, requireRole(["admin", "manager"]), createContact);
+router.post("/", verifyJWT, requireRole(["admin", "manager","owner"]), createContact);
 router.get("/", verifyJWT, getContacts);
-router.patch("/:id", verifyJWT, requireRole(["admin", "manager"]), updateContact);
-router.delete("/:id", verifyJWT, requireRole(["admin"]), deleteContact);
+router.patch("/:id", verifyJWT, requireRole(["admin", "manager","owner"]), updateContact);
+router.delete("/:id", verifyJWT, requireRole(["admin","owner"]), deleteContact);
 
 export default router;
