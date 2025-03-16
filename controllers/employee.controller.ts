@@ -13,91 +13,127 @@ const handleError = (res: Response, error: any, message: string) => {
 /** ✅ Assign Employee to Company (Find by Email) */
 export const assignEmployeeRole = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, position, department, salary, company,reportsTo } = req.body;
+    const { email, position, department, salary, company, reportsTo } = req.body;
+
+    // ✅ Log the received data
+    console.log("Received request body:", req.body);
+    console.log("Email:", email);
+    console.log("Position:", position);
+    console.log("Department:", department);
+    console.log("Salary:", salary);
+    console.log("Company:", company);
+    console.log("Reports To:", reportsTo);
 
     // ✅ Validate required fields
     if (!email || !position || !department || !salary || !company) {
+      console.error("Validation failed: All fields are required");
       res.status(400).json({ message: "All fields are required" });
       return;
     }
 
     // ✅ Fetch the employee user by email
     const employeeUser = await User.findOne({ email });
+    console.log("Employee User:", employeeUser);
 
     if (!employeeUser) {
+      console.error("User not found for email:", email);
       res.status(404).json({ message: "User not found" });
       return;
     }
 
     if (employeeUser.company) {
+      console.error("User is already part of a company:", employeeUser.company);
       res.status(400).json({ message: "User is already part of a company" });
       return;
     }
 
     // ✅ Ensure "staff" role is assigned by default
     const staffRole = await Role.findOne({ name: "staff" }).lean();
+    console.log("Staff Role:", staffRole);
+
     if (!staffRole || !staffRole._id) {
+      console.error("Default role 'staff' not found");
       res.status(500).json({ message: "Default role 'staff' not found" });
       return;
     }
 
     // ✅ Assign employee to company with "staff" role
     employeeUser.position = position;
-    employeeUser.department = department;
+    employeeUser.department = department; // ✅ Assign the selected department
     employeeUser.salary = salary;
     employeeUser.company = new mongoose.Types.ObjectId(company);
     employeeUser.role = new mongoose.Types.ObjectId(staffRole._id.toString()); // ✅ Assign "staff" role
     employeeUser.reportsTo = reportsTo;
 
     await employeeUser.save();
+    console.log("Updated Employee User:", employeeUser);
 
     // ✅ Add employee to company's employee list
-    await Company.findByIdAndUpdate(
+    const updatedCompany = await Company.findByIdAndUpdate(
       company,
       { $push: { employees: employeeUser._id } },
       { new: true }
     );
+    console.log("Updated Company:", updatedCompany);
 
     res.status(201).json({ message: "Employee added successfully", employeeUser });
   } catch (error) {
+    console.error("Error in assignEmployeeRole:", error);
     handleError(res, error, "Error adding employee to company");
   }
 };
 
 
-
+/** ✅ Remove Employee Role */
 /** ✅ Remove Employee Role */
 export const removeEmployeeRole = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
 
+    // ✅ Validate User ID
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       res.status(400).json({ message: "Invalid User ID" });
       return;
     }
 
+    // ✅ Find the Employee
     const employeeUser = await User.findById(userId);
     if (!employeeUser) {
       res.status(404).json({ message: "Employee not found" });
       return;
     }
 
-    // ✅ Assign default role
+    // ✅ Assign Default Role ("customer")
     const defaultRole = await Role.findOne({ name: "customer" }).lean();
     if (!defaultRole || !defaultRole._id) {
       res.status(500).json({ message: "Default role 'customer' not found" });
       return;
     }
 
-    employeeUser.role = new mongoose.Types.ObjectId(defaultRole._id.toString());
-    await employeeUser.save();
+    // ✅ Remove Employee from Company's Employee List
+    if (employeeUser.company) {
+      await Company.findByIdAndUpdate(
+        employeeUser.company,
+        { $pull: { employees: employeeUser._id } }, // ✅ Remove employee from the company's employee list
+        { new: true }
+      );
+    }
+
+    // ✅ Reset Employee Fields
+    employeeUser.role = new mongoose.Types.ObjectId(defaultRole._id.toString()); // ✅ Assign "customer" role
+    employeeUser.company = null; // ✅ Remove the employee from the company
+    employeeUser.position = null; // ✅ Clear position
+    employeeUser.department = null; // ✅ Clear department
+    employeeUser.salary = null; // ✅ Clear salary
+    employeeUser.reportsTo = null; // ✅ Clear reportsTo
+
+    await employeeUser.save(); // ✅ Save the updated user
 
     res.json({ message: "Employee role removed successfully", employeeUser });
   } catch (error) {
     handleError(res, error, "Error removing employee role");
   }
 };
-
 /** ✅ Get Employees of the Company */
 export const getCompanyEmployees = async (req: Request, res: Response): Promise<void> => {
   try {

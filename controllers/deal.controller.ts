@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { Deal } from "../models/deal.model";
+
 interface AuthRequest extends Request {
   user?: {
     userId: string;
@@ -8,10 +10,31 @@ interface AuthRequest extends Request {
     company?: string | null;
   };
 }
+
 /** ✅ Create a Deal */
 export const createDeal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, description, amount, stage, assignedTo, customer, expectedCloseDate } = req.body;
+
+    // ✅ Validate required fields
+    if (!title || !amount || !stage || !customer || !assignedTo) {
+      console.error("Validation Error: Missing required fields", req.body); // Log request body
+      res.status(400).json({ message: "Missing required fields: title, amount, stage, customer, or assignedTo" });
+      return;
+    }
+
+    // ✅ Ensure customer and assignedTo are valid ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(customer)) {
+      console.error("Invalid customer ID format:", customer);
+      res.status(400).json({ message: "Invalid customer ID format" });
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+      console.error("Invalid assignedTo ID format:", assignedTo);
+      res.status(400).json({ message: "Invalid assignedTo ID format" });
+      return;
+    }
 
     const deal = new Deal({
       title,
@@ -21,15 +44,17 @@ export const createDeal = async (req: AuthRequest, res: Response): Promise<void>
       assignedTo,
       customer,
       expectedCloseDate,
-      createdBy: req.user?.userId, // Track deal creator
+      createdBy: req.user?.userId,
     });
 
     await deal.save();
     res.status(201).json(deal);
   } catch (error) {
-    res.status(500).json({ message: "Error creating deal", error });
+    console.error("Error creating deal:", error);
+    res.status(500).json({ message: "Error creating deal", error: error.message || error });
   }
 };
+
 
 /** ✅ Get All Deals */
 export const getDeals = async (_req: Request, res: Response): Promise<void> => {

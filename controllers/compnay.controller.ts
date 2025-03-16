@@ -199,23 +199,71 @@ export const deleteCompany = asyncHandler(async (req: Request, res: Response) =>
   try {
     const { companyId } = req.params;
 
+    // ✅ Validate company ID
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
       res.status(400).json({ success: false, message: "Invalid company ID" });
       return;
     }
 
+    // ✅ Ensure the user belongs to a company
     if (!(req as any).user.company) {
       res.status(403).json({ success: false, message: "You do not belong to a company." });
       return;
     }
 
+    // ✅ Find the company and its owner
+    const company = await Company.findById(companyId);
+    if (!company) {
+      res.status(404).json({ success: false, message: "Company not found" });
+      return;
+    }
+
+    // ✅ Fetch the owner of the company
+    const owner = await User.findById(company.createdBy);
+    if (!owner) {
+      res.status(404).json({ success: false, message: "Owner not found" });
+      return;
+    }
+
+    // ✅ Fetch the default "customer" role
+    const customerRole = await Role.findOne({ name: "customer" }).lean();
+    if (!customerRole || !customerRole._id) {
+      res.status(500).json({ success: false, message: "Default role 'customer' not found" });
+      return;
+    }
+
+    // ✅ Revert the owner's role to "customer"
+    owner.role = new mongoose.Types.ObjectId(customerRole._id.toString());
+    owner.company = null; // ✅ Remove the company association
+    owner.position = null; // ✅ Clear position
+    owner.department = null; // ✅ Clear department
+    owner.salary = null; // ✅ Clear salary
+    owner.reportsTo = null; // ✅ Clear reportsTo
+    await owner.save();
+
+    // ✅ Remove all employees from the company
+    await User.updateMany(
+      { company: companyId },
+      {
+        $set: {
+          role: new mongoose.Types.ObjectId(customerRole._id.toString()), // ✅ Assign "customer" role
+          company: null, // ✅ Remove company association
+          position: null, // ✅ Clear position
+          department: null, // ✅ Clear department
+          salary: null, // ✅ Clear salary
+          reportsTo: null, // ✅ Clear reportsTo
+        },
+      }
+    );
+
+    // ✅ Delete the company
     await Company.findByIdAndDelete(companyId);
+
     res.status(200).json({ success: true, message: "Company deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error deleting company", error });
   }
 });
-
 
 /** ✅ Add a New Department to a Company */
 /**

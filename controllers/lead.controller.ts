@@ -45,11 +45,21 @@ export const createLead = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 /** ✅ Get All Leads with Filters */
+/** ✅ Get All Leads with Filters (Company-Specific) */
 export const getLeads = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { status, source, assignedTo } = req.query;
+    const user = req.user;
 
-    const filter: Record<string, any> = {};
+    // ✅ Ensure the user is logged in and belongs to a company
+    if (!user || !user.company) {
+      res.status(403).json({ message: "Unauthorized: User does not belong to a company." });
+      return;
+    }
+
+    const { status, source, assignedTo } = req.query;
+    
+    const filter: Record<string, any> = { company: user.company }; // ✅ Filter by company
+
     if (status) filter.status = status;
     if (source) filter.source = source;
     if (assignedTo) filter.assignedTo = assignedTo;
@@ -153,19 +163,31 @@ export const convertLeadToCustomer = async (req: AuthRequest, res: Response): Pr
       email: lead.email,
       phone: lead.phone,
       company: lead.company,
+      industry: lead.industry || "Unknown",
+      relationshipType: "prospect", // Initially a prospect
       address: lead.address,
       city: lead.city,
       state: lead.state,
       country: lead.country,
       zipCode: lead.zipCode,
       website: lead.website,
-      customerValue: lead.leadValue,
+      customerValue: lead.leadValue || 0,
       assignedTo: lead.assignedTo || req.user?.userId,
       createdBy: req.user?.userId,
+      leadSource: lead.source || "unknown",
+      lastContactDate: new Date(), // Set last contact date to now
+      notes: [`Converted from lead on ${new Date().toISOString()}`],
+      communicationHistory: [
+        {
+          date: new Date(),
+          method: "email",
+          summary: "Lead converted to customer",
+        },
+      ],
     });
 
     await customer.save();
-    
+
     // Delete the lead after conversion
     await lead.deleteOne();
 
